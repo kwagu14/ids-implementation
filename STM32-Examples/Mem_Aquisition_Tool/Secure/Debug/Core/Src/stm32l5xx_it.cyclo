@@ -1,0 +1,13 @@
+stm32l5xx_it.c:71:6:NMI_Handler	1
+stm32l5xx_it.c:86:6:HardFault_Handler	1
+stm32l5xx_it.c:101:6:MemManage_Handler	1
+stm32l5xx_it.c:116:6:BusFault_Handler	1
+stm32l5xx_it.c:131:6:UsageFault_Handler	1
+stm32l5xx_it.c:146:6:SecureFault_Handler	1
+stm32l5xx_it.c:161:6:SVC_Handler	1
+stm32l5xx_it.c:174:6:DebugMon_Handler	1
+stm32l5xx_it.c:187:6:PendSV_Handler	1
+stm32l5xx_it.c:200:6:SysTick_Handler	1
+stm32l5xx_it.c:219:6:GTZC_IRQHandler	1
+stm32l5xx_it.c:234:6:DMA1_Channel3_IRQHandler	1
+stm32l5xx_it.c:249:6:DMA1_Channel2_IRQHandler	1

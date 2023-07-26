@@ -1,0 +1,10 @@
+../Core/Src/secure_nsc.c:59:27:SECURE_DMA_Fetch_NonSecure_Mem	32	static
+../Core/Src/secure_nsc.c:89:27:SECURE_DMA_NonSecure_Mem_Transfer	32	static
+../Core/Src/secure_nsc.c:119:27:SECURE_DATA_Last_Buffer_Compare	24	static
+../Core/Src/secure_nsc.c:142:27:SECURE_print_Buffer	24	static
+../Core/Src/secure_nsc.c:157:20:SECURE_print_Log	16	static
+../Core/Src/secure_nsc.c:168:20:SECURE_RegisterCallback	16	static
+../Core/Src/secure_nsc.c:195:6:NonSecureToSecureTransferComplete	32	static
+../Core/Src/secure_nsc.c:218:6:NonSecureToSecureTransferError	16	static
+../Core/Src/secure_nsc.c:231:6:NonSecureToNonSecureTransferComplete	32	static
+../Core/Src/secure_nsc.c:254:6:NonSecureToNonSecureTransferError	16	static

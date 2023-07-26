@@ -1,0 +1,7 @@
+C:/Users/karle/STM32CubeIDE/workspace_1.12.1/GPIO_IOToggle_TrustZone/Secure/Src/main.c:65:5:main	40	static
+C:/Users/karle/STM32CubeIDE/workspace_1.12.1/GPIO_IOToggle_TrustZone/Secure/Src/main.c:160:13:NonSecure_Init	24	static,ignoring_inline_asm
+C:/Users/karle/STM32CubeIDE/workspace_1.12.1/GPIO_IOToggle_TrustZone/Secure/Src/main.c:181:13:MX_GTZC_S_Init	120	static
+C:/Users/karle/STM32CubeIDE/workspace_1.12.1/GPIO_IOToggle_TrustZone/Secure/Src/main.c:248:13:MX_ICACHE_Init	8	static
+C:/Users/karle/STM32CubeIDE/workspace_1.12.1/GPIO_IOToggle_TrustZone/Secure/Src/main.c:280:13:MX_GPIO_Init	40	static
+C:/Users/karle/STM32CubeIDE/workspace_1.12.1/GPIO_IOToggle_TrustZone/Secure/Src/main.c:317:13:SystemClock_Config	104	static
+C:/Users/karle/STM32CubeIDE/workspace_1.12.1/GPIO_IOToggle_TrustZone/Secure/Src/main.c:385:6:Error_Handler	8	static

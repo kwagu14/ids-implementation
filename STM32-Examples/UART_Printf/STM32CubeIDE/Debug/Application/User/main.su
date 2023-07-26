@@ -1,0 +1,7 @@
+C:/Users/karle/STM32CubeIDE/workspace_1.12.1/UART_Printf/Src/main.c:74:5:main	8	static
+C:/Users/karle/STM32CubeIDE/workspace_1.12.1/UART_Printf/Src/main.c:133:6:SystemClock_Config	104	static
+C:/Users/karle/STM32CubeIDE/workspace_1.12.1/UART_Printf/Src/main.c:184:13:MX_ICACHE_Init	8	static
+C:/Users/karle/STM32CubeIDE/workspace_1.12.1/UART_Printf/Src/main.c:216:13:MX_USART3_UART_Init	8	static
+C:/Users/karle/STM32CubeIDE/workspace_1.12.1/UART_Printf/Src/main.c:264:13:MX_GPIO_Init	16	static
+C:/Users/karle/STM32CubeIDE/workspace_1.12.1/UART_Printf/Src/main.c:278:1:__io_putchar	16	static
+C:/Users/karle/STM32CubeIDE/workspace_1.12.1/UART_Printf/Src/main.c:293:6:Error_Handler	8	static

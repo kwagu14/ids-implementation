@@ -1,0 +1,16 @@
+stm32l552e_eval.c:169:9:BSP_GetVersion	1
+stm32l552e_eval.c:178:16:BSP_GetBoardName	1
+stm32l552e_eval.c:187:16:BSP_GetBoardID	1
+stm32l552e_eval.c:206:9:BSP_LED_Init	4
+stm32l552e_eval.c:264:9:BSP_LED_DeInit	3
+stm32l552e_eval.c:309:9:BSP_LED_On	3
+stm32l552e_eval.c:337:9:BSP_LED_Off	3
+stm32l552e_eval.c:365:9:BSP_LED_Toggle	3
+stm32l552e_eval.c:393:9:BSP_LED_GetState	1
+stm32l552e_eval.c:446:9:BSP_PB_Init	6
+stm32l552e_eval.c:512:9:BSP_PB_DeInit	1
+stm32l552e_eval.c:531:9:BSP_PB_GetState	1
+stm32l552e_eval.c:545:13:BSP_PB_Callback	1
+stm32l552e_eval.c:562:6:BSP_PB_IRQHandler	1
+stm32l552e_eval.c:1302:13:BUTTON_WAKEUP_EXTI_Callback	1
+stm32l552e_eval.c:1311:13:BUTTON_TAMPER_EXTI_Callback	1

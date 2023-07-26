@@ -1,0 +1,6 @@
+main.c:88:5:main	13
+main.c:207:6:SystemClock_Config	4
+main.c:261:13:MX_GPIO_Init	1
+main.c:315:13:NonSecureSecureTransferCompleteCallback	1
+main.c:327:13:NonSecureNonSecureTransferCompleteCallback	1
+main.c:341:6:Error_Handler	1
