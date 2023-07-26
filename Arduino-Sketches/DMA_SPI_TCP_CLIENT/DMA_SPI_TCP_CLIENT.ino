@@ -4,7 +4,7 @@
 
 //SPI data structures
 ESP32DMASPI::Slave slave;
-static const uint32_t BUFFER_SIZE = 32;
+static const uint32_t BUFFER_SIZE = 1024;
 uint8_t* spi_slave_tx_buf;
 uint8_t* spi_slave_rx_buf;
 
@@ -25,10 +25,10 @@ WiFiClient client;
 WiFiMulti wifiMulti;
 
 //signals to be sent to server to help with parsing the TCP stream
-String endTransmissionSignal = "<END_TRANSMISSION>--------------";
-String startTransmissionSignal = "<START_TRANSMISSION>------------";
-String startBlockSignal = "<START_DATA_BLOCK>--------------";
-String endBlockSignal = "<END_DATA_BLOCK>----------------";
+String endTransmissionSignal = "<END_TRANSMISSION>";
+String startTransmissionSignal = "<START_TRANSMISSION>";
+String startBlockSignal = "<START_DATA_BLOCK>";
+String endBlockSignal = "<END_DATA_BLOCK>";
 
 
 void setup() {
@@ -76,6 +76,25 @@ void setup() {
 
   //set CS pin as input so we can implement edge detection
   pinMode(SS, INPUT);
+
+  //pad the signals
+  endTransmissionSignal = padString(endTransmissionSignal);
+  startTransmissionSignal = padString(startTransmissionSignal);
+  endBlockSignal = padString(endBlockSignal);
+  startBlockSignal = padString(startBlockSignal);
+
+  //print them
+  Serial.println("=============== SIGNALS ==================");
+  Serial.print("Start Transmission: ");
+  Serial.println(startTransmissionSignal);
+  Serial.print("End Transmission: ");
+  Serial.println(endTransmissionSignal);
+  Serial.print("Start Block: ");
+  Serial.println(startBlockSignal);
+  Serial.print("End Block: ");
+  Serial.println(endBlockSignal);
+  Serial.println("==========================================");
+
 }
 
 void loop() { 
@@ -130,7 +149,7 @@ void loop() {
       Serial.println("Buffer Recieved from SPI:");
       Serial.println("===========================================");
       for(int i=0; i<BUFFER_SIZE; i++){
-        Serial.printf("%u ", spi_slave_rx_buf[i]);
+        Serial.printf("%x ", spi_slave_rx_buf[i]);
       }
       Serial.println();
       Serial.println("===========================================");
@@ -169,5 +188,18 @@ void loop() {
   }
   //update the SS pin state for edge detection
   lastSSPinState = ssPinState;
+
+}
+
+
+//function to pad the string with the correct number of characters
+String padString(String str){
+  int len = str.length();
+
+  int padding = BUFFER_SIZE - len;
+  for(int i = 0; i < padding; i++){
+    str+="-";
+  }
+  return str;
 
 }

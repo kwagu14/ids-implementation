@@ -1,0 +1,12 @@
+main.c:90:5:main	1
+main.c:154:13:NonSecure_Init	1
+main.c:174:6:SystemClock_Config	4
+main.c:225:13:MX_GTZC_S_Init	5
+main.c:300:13:MX_ICACHE_Init	3
+main.c:332:13:MX_SPI3_Init	2
+main.c:372:13:MX_USART1_UART_Init	5
+main.c:421:13:MX_DMA_Init	11
+main.c:527:13:MX_GPIO_Init	1
+main.c:568:6:HAL_SPI_TxRxCpltCallback	1
+main.c:574:1:__io_putchar	1
+main.c:588:6:Error_Handler	1

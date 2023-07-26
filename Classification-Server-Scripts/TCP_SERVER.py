@@ -12,13 +12,13 @@ import struct
 SERVER_HOST = "192.168.0.94"
 #The port that clients have to enter 
 SERVER_PORT = 1337
-BUFFER_SIZE = 32
+BUFFER_SIZE = 1024
 SEPARATOR = "<SEPARATOR>"
 
-START_TRANSMISSION = "<START_TRANSMISSION>------------"
-END_TRANSMISSION = "<END_TRANSMISSION>--------------"
-START_DATA_BLOCK = "<START_DATA_BLOCK>--------------"
-END_DATA_BLOCK = "<END_DATA_BLOCK>----------------"
+START_TRANSMISSION = "<START_TRANSMISSION>"
+END_TRANSMISSION = "<END_TRANSMISSION>"
+START_DATA_BLOCK = "<START_DATA_BLOCK>"
+END_DATA_BLOCK = "<END_DATA_BLOCK>"
 
 
 def receiveMemDump(client_socket):
@@ -59,7 +59,7 @@ def receiveMemDump(client_socket):
                             memBlock = recvall(client_socket, BUFFER_SIZE)
                             #print it
                             for x in range(len(memBlock)):
-                                print(memBlock[x], " ", end= "")
+                                print(hex(memBlock[x]), " ", end= "")
                             print("\n")
                         else:
                             print("Error: TCP stream improperly formatted. Received wrong signal.")
@@ -96,6 +96,15 @@ def recvall(sock, n):
             return None
         data.extend(packet)
     return data
+
+
+#a function to pad the signals to the correct length
+def padString(signal):
+    padding = BUFFER_SIZE - len(signal)
+    for x in range(padding):
+        signal += "-"
+    return signal
+
 
 #code for handling each client that connects
 # def receiveFile(client_socket, identity, filename):
@@ -161,6 +170,15 @@ s.bind((SERVER_HOST, SERVER_PORT))
 s.listen(10)
 print(f"[FROM FILESERVER]: Listening as {SERVER_HOST}:{SERVER_PORT}")
 
+#pad the signals
+START_TRANSMISSION = padString(START_TRANSMISSION)
+print(START_TRANSMISSION)
+END_TRANSMISSION = padString(END_TRANSMISSION)
+print(END_TRANSMISSION)
+START_DATA_BLOCK = padString(START_DATA_BLOCK)
+print(START_DATA_BLOCK)
+END_DATA_BLOCK = padString(END_DATA_BLOCK)
+print(END_DATA_BLOCK)
 
 #create a separate thread for each connection
 while(True):

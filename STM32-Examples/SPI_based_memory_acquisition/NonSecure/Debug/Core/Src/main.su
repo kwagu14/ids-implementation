@@ -1,0 +1,7 @@
+../Core/Src/main.c:71:5:main	16	static
+../Core/Src/main.c:164:6:SystemClock_Config	104	static
+../Core/Src/main.c:213:13:MX_DMA_Init	16	static
+../Core/Src/main.c:227:13:MX_GPIO_Init	16	static
+../Core/Src/main.c:246:13:NonSecureSecureTransferCompleteCallback	16	static
+../Core/Src/main.c:258:13:NonSecureNonSecureTransferCompleteCallback	16	static
+../Core/Src/main.c:268:6:Error_Handler	4	static,ignoring_inline_asm

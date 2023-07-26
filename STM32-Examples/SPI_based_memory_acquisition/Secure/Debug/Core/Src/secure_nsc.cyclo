@@ -1,0 +1,12 @@
+secure_nsc.c:51:27:SECURE_SPI_Send_Data	4
+secure_nsc.c:84:27:SECURE_SPI_Toggle_Comm	2
+secure_nsc.c:105:27:SECURE_DMA_Fetch_NonSecure_Mem	3
+secure_nsc.c:144:27:SECURE_DMA_NonSecure_Mem_Transfer	4
+secure_nsc.c:172:27:SECURE_print_Buffer	3
+secure_nsc.c:188:20:SECURE_print_Log	1
+secure_nsc.c:200:20:SECURE_RegisterCallback	4
+secure_nsc.c:222:27:SECURE_DATA_Last_Buffer_Compare	4
+secure_nsc.c:253:6:NonSecureToSecureTransferComplete	2
+secure_nsc.c:276:6:NonSecureToSecureTransferError	1
+secure_nsc.c:289:6:NonSecureToNonSecureTransferComplete	2
+secure_nsc.c:312:6:NonSecureToNonSecureTransferError	1
