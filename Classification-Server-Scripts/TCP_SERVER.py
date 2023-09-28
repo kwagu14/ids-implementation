@@ -1,87 +1,153 @@
+'''
+This code accepts a full non-secure flash bank memory dump from an STM32 MCU. 
+
+Since the STM32 does not have built-in Wi-Fi/networking capabilities, the dumps get sent through
+an ESP32 MCU attached to the STM32 via SPI. 
+
+This code expects the TCP data to arrive in a very specific format which is 
+
+[<SIGNAL>] (padded to 30 bytes)
+[DATA BLOCK 1]
+[DATA BLOCK 2]
+...
+[DATA BLOCK N]
+[<END_SIGNAL] (padded to 30 bytes)
+
+'''
+
+
 import socket
 import os
 from _thread import *
 import signal
 import sys
+import time
 import struct
-#this will "import" the python file into the code
+#this will "import" the ML python file into the code
 # exec(open("./cnn-model.py", "rb").read())
 
 
 #This is the server IP address; we'll use our public address
-SERVER_HOST = "192.168.0.94"
+SERVER_HOST = "172.16.14.91"
 #The port that clients have to enter 
 SERVER_PORT = 1337
+#block size
 BUFFER_SIZE = 1024
+#separator used for ASCII messages
 SEPARATOR = "<SEPARATOR>"
-
+#signals; will get padded to block size
 START_TRANSMISSION = "<START_TRANSMISSION>"
 END_TRANSMISSION = "<END_TRANSMISSION>"
+SIGNAL_SIZE = 30
 START_DATA_BLOCK = "<START_DATA_BLOCK>"
 END_DATA_BLOCK = "<END_DATA_BLOCK>"
+START_CLASSIFICATION = "<START_CLASSIFICATION>"
+END_CLASSIFICATION = "<END_CLASSIFICATION>"
+#expecting 256KB of data (all of flash bank 2)
+EXPECTED_MEM_SIZE = 262144 
 
 
+#TODO: need to get rid of block signals 
+#since I'm still sending the signals padded to 1024 bytes, that doesn't have to change for now
+
+
+
+#parses TCP stream sent by the MCU and saves the memory in a binary file
 def receiveMemDump(client_socket):
     path = "sample_dump.bin"
-    #create a binary file (if not exists)
-    # with open(path, "wb") as f:
+    blockNum = 0
+    numBytesReceived = 0
+    #create a binary file (if doesn't exist); overwrite if it does exist
+    f = open(path, "wb")
     
     #loop that searches for the start of a memory transmission
     print("Looking for: <START_TRANSMISSION>...\n")
     while True:
-        bytes_received = client_socket.recv(BUFFER_SIZE)
-        #stop receiving if the client is not sending
+        #first see if we've received all the memory, then break if so
+        if (numBytesReceived >= EXPECTED_MEM_SIZE):
+            break
+        #else receive more bytes
+        bytes_received = recvall(client_socket, BUFFER_SIZE)
+        #if client hasn't sent us anything, then stop reception
         if not bytes_received:
+            print("No more data from the client...")
             break
         try:
-            #look for <START_TRANSMISSION> signal; try to decode to ASCII
+            #else, look for <START_TRANSMISSION> signal; try to decode to ASCII
             result = bytes_received.decode()
             if(result != START_TRANSMISSION):
                 continue
             else:
-                #we got the start of the dump
+                #if succeeded, we got the start of the dump
                 print("Received <START_TRANSMISSION> signal from client")
                 while True:
-                    #Receive memory blocks
+                    #Now receive memory blocks as they come in
+                    bytes_received = recvall(client_socket, BUFFER_SIZE)
                     try: 
-                        #this needs to be a signal; signals are padded to 32 bytes long
-                        bytes_received = client_socket.recv(BUFFER_SIZE)
+                        #first check if we got an end transmission signal
                         result = bytes_received.decode()
-                        #first make sure we haven't reached the end of the transmission
-                        #TODO add check to force correct # of bytes to be received (protect against injection)
                         if(result == END_TRANSMISSION):
+                            #stop receiving blocks
                             print("Received <END_TRANSMISSION> from client.")
                             break
-                        #do we have a start data block?
-                        if(result == START_DATA_BLOCK):
-                            print("Received <START_DATA_BLOCK> from client")
-                            #now receive data block
-                            memBlock = recvall(client_socket, BUFFER_SIZE)
-                            #print it
-                            for x in range(len(memBlock)):
-                                print(hex(memBlock[x]), " ", end= "")
-                            print("\n")
                         else:
-                            print("Error: TCP stream improperly formatted. Received wrong signal.")
-                            client_socket.close()
-                            return
-                        #then check for the <END_DATA_BLOCK> signal after the mem block is received
-                        bytes_received = client_socket.recv(BUFFER_SIZE)
-                        result = bytes_received.decode()
-                        if(result == END_DATA_BLOCK):
-                            print("Received <END_DATA_BLOCK> from client")
-                        else:
-                            print("Error: TCP stream improperly formatted. Received wrong signal.")
-                            client_socket.close()
-                            return
+                            #we just have normal data that should be written
+                            try: 
+                                f.write(bytes_received)
+                            except Exception as e:
+                                print("Error with file write operation:")
+                                print(e)
+                            numBytesReceived += BUFFER_SIZE
+                            #and print it out for validation
+                            print("Received Data: ")
+                            print("=====================================================================")
+                            for x in range(len(bytes_received)):
+                                print(hex(bytes_received[x]), "\t", end= "")
+                                if((x+1)%16 == 0):
+                                    print("\n")
+                            # blockNum +=1
                     except:
-                        print("Error: TCP stream improperly formatted. Was not able to decode signal.")
-                        client_socket.close()
-                        return
+                        #if the data can't be decoded into ascii, it's probably memory
+                        #try writing the data to a file
+                        try: 
+                            f.write(bytes_received)
+                        except Exception as e:
+                            print(e)
+                        numBytesReceived += BUFFER_SIZE
+                        #and print it out for validation
+                        print("Received Data: ")
+                        print("=====================================================================")
+                        for x in range(len(bytes_received)):
+                            print(hex(bytes_received[x]), "\t", end= "")
+                            if((x+1)%16 == 0):
+                                print("\n")
+                        # blockNum +=1
         except: 
             pass
+    
+    #close the binary file
+    f.close()
+    #now check if correct num of bytes were received
+    if(numBytesReceived > EXPECTED_MEM_SIZE):
+        print("Error: received too many bytes from MCU.")
+        #TODO: send signal to MCU & reset device
+    elif(numBytesReceived < EXPECTED_MEM_SIZE):
+        print("Error: received too little bytes from MCU.")
+        #TODO: send signal to MCU & reset device
+    else:
+        print("All memory written to file. Closing connection...")
+    
+    print("Bytes received: ", str(numBytesReceived))
 
-    print("Transmission complete. Closing connection...")
+    #at this point, we have the full memory dump; get classification
+    classification = 1
+    #now send to client
+    response = START_CLASSIFICATION + str(classification) + END_CLASSIFICATION
+    print("Sending classification to server.")
+    client_socket.send(response.encode())
+    print("Finished.")
+
+    #then close connection
     client_socket.close()
     return
 
@@ -121,15 +187,6 @@ def padString(signal):
 #                 break
 #             f.write(bytes_read)
 #             progress.update(len(bytes_read))
-    
-    
-# def sendSimularity(client_socket, identity, filename):
-#     path = identity + "/" + filename
-#     print("[FROM FILESERVER]: Passing file to classifier...")
-#     simularity = classify(path)
-#     print("[FROM FILESERVER]: Simularity found to be ", simularity)
-#     #send to the client
-#     client_socket.send(simularity.encode())
 
 
 
@@ -172,13 +229,9 @@ print(f"[FROM FILESERVER]: Listening as {SERVER_HOST}:{SERVER_PORT}")
 
 #pad the signals
 START_TRANSMISSION = padString(START_TRANSMISSION)
-print(START_TRANSMISSION)
 END_TRANSMISSION = padString(END_TRANSMISSION)
-print(END_TRANSMISSION)
 START_DATA_BLOCK = padString(START_DATA_BLOCK)
-print(START_DATA_BLOCK)
 END_DATA_BLOCK = padString(END_DATA_BLOCK)
-print(END_DATA_BLOCK)
 
 #create a separate thread for each connection
 while(True):

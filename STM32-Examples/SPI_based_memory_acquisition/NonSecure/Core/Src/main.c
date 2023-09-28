@@ -43,6 +43,7 @@
 
 /* USER CODE BEGIN PV */
 uint8_t NSC_Mem_Buffer[BUFFER_SIZE];
+TIM_HandleTypeDef htim3;
 
 //flags For DMA transfer
 static __IO uint32_t transferCompleteDetected; /* Set to 1 if transfer is correctly completed */
@@ -52,6 +53,8 @@ static __IO uint32_t transferErrorDetected; /* Set to 1 if an error transfer is 
 /* Private function prototypes -----------------------------------------------*/
 static void MX_DMA_Init(void);
 static void MX_GPIO_Init(void);
+void SystemClock_Config(void);
+static void MX_TIM3_Init(void);
 static void NonSecureSecureTransferCompleteCallback(DMA_HandleTypeDef *hdma_memtomem_dma1_channelx);
 static void NonSecureNonSecureTransferCompleteCallback(DMA_HandleTypeDef *hdma_memtomem_dma1_channelx);
 
@@ -92,56 +95,84 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_DMA_Init();
   MX_GPIO_Init();
+//  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
+//  SECURE_print_Log("Hello\n\r");
+//  if (HAL_TIM_Base_Start_IT(&htim3) != HAL_OK)
+//  {
+//	 SECURE_print_Log("error starting tim3 in interrupt mode\n\r");
+//    /* Starting Error */
+//    Error_Handler();
+//  }
 
   /************************* SEND MEMORY DUMP TO SECURE REGION *********************************/
+  //I'm ready to send memory
+//  SECURE_print_Log("Memory is ready to be sent\n\r");
+//  SECURE_Mem_Ready();
 
   /*** Step 1: toggle SPI communication ****/
   SECURE_SPI_Toggle_Comm(0);
+  //send the start transmission signal through SPI
+  SECURE_SPI_Send_Start_Signal();
   /*** Step 2: copy a block of non-secure memory into a non-secure buffer ****/
+  int numBytesSent=0;
+//  int blockNum = 0;
   uint32_t* current_address = (uint32_t*) NSEC_MEM_START;
     //while we haven't reached the end of non-secure memory and we have at least 1024 bytes to transfer
     while((uint32_t) current_address <= NSEC_MEM_END && (NSEC_MEM_END - (uint32_t)current_address) +1 >= BUFFER_SIZE){
-  	  	//move 1024 bytes into the memory buffer
-    	  	  transferCompleteDetected = 0;
-    	  	  if(SECURE_DMA_NonSecure_Mem_Transfer(current_address,
-    	  			  	  	  	  	  	  	  	  	  (uint32_t*)NSC_Mem_Buffer,
-  												  (uint32_t) BUFFER_SIZE,
-  												  (void *)NonSecureNonSecureTransferCompleteCallback) == ERROR)
-    	  	  {
-    	  		SECURE_print_Log("There was an error with non-secure to secure transfer.\n\r");
-    	  		Error_Handler();
-    	  	  }
+//  	  	//move 1024 bytes into the memory buffer
+//    	  	  transferCompleteDetected = 0;
+//    	  	  if(SECURE_DMA_NonSecure_Mem_Transfer(current_address,
+//    	  			  	  	  	  	  	  	  	  	  (uint32_t*)NSC_Mem_Buffer,
+//  												  (uint32_t) BUFFER_SIZE/4,
+//  												  (void *)NonSecureNonSecureTransferCompleteCallback) == ERROR)
+//    	  	  {
+//    	  		SECURE_print_Log("There was an error with non-secure to secure transfer.\n\r");
+//    	  		Error_Handler();
+//    	  	  }
+//
+//    	  	while (transferCompleteDetected == 0);
 
-    	  	while (transferCompleteDetected == 0);
 
+	 /*** Step 3: copy the block of non-secure memory into the secure memory region ****/
+	/* Reset transferCompleteDetected to 0, it will be set to 1 if a transfer is correctly completed */
+		transferCompleteDetected = 0;
+		if (SECURE_DMA_Fetch_NonSecure_Mem((uint32_t *)current_address,
+										   BUFFER_SIZE/4,
+										   (void *)NonSecureSecureTransferCompleteCallback) == ERROR)
+		{
+			SECURE_print_Log("There was an error with non-secure to secure transfer.\n\r");
+			Error_Handler();
+		}
 
-    	 /*** Step 3: copy the block of non-secure memory into the secure memory region ****/
-  	    /* Reset transferCompleteDetected to 0, it will be set to 1 if a transfer is correctly completed */
-  	    transferCompleteDetected = 0;
-  	    if (SECURE_DMA_Fetch_NonSecure_Mem((uint32_t *)NSC_Mem_Buffer,
-  	                                       BUFFER_SIZE,
-  	                                       (void *)NonSecureSecureTransferCompleteCallback) == ERROR)
-  	    {
-  	    	SECURE_print_Log("There was an error with non-secure to secure transfer.\n\r");
-  	    	Error_Handler();
-  	    }
+		/* Wait for notification completion */
+		while (transferCompleteDetected == 0);
+		//	    SECURE_print_Num(blockNum);
+		//	    blockNum++;
+		//print out to screen
+		SECURE_DATA_Last_Buffer_Compare((uint32_t*)current_address);
 
-  	    /* Wait for notification completion */
-  	    while (transferCompleteDetected == 0);
-  	    //print out to screen
-  	    SECURE_DATA_Last_Buffer_Compare((uint32_t*)current_address);
-  	    //increment the address variable by 1024 bytes
-  	    current_address += BUFFER_SIZE;
+		/*** Step 4: transfer the block WiFi module using SPI ****/
+		SECURE_SPI_Send_Data();
+		//increment the address variable by 1024 bytes
+		current_address += BUFFER_SIZE/4;
+		numBytesSent+= 1024;
 
-  	  /*** Step 4: transfer the block WiFi module using SPI ****/
-  	  SECURE_SPI_Send_Data();
-  	  HAL_Delay(300);
+		HAL_Delay(1000);
+
     }
-    /*** Step 5: toggle SPI communication OFF****/
-    SECURE_SPI_Toggle_Comm(1);
-    //we incremented one too many before checking the while condition, so undo the last increment
-    current_address -= BUFFER_SIZE/4;
+    //send the end transmission signal to SPI
+    SECURE_SPI_Send_End_Signal();
+    HAL_Delay(2000);
+    //try to receive the classification
+    SECURE_SPI_Receive_Classification();
+	SECURE_SPI_Toggle_Comm(1);
+    SECURE_print_Log("Total number of bytes sent:\n\r");
+    SECURE_print_Num(numBytesSent);
+
+
+
+
 
   /* USER CODE END 2 */
 
@@ -207,6 +238,55 @@ void SystemClock_Config(void)
   }
 }
 
+
+/**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+  __HAL_RCC_TIM3_CLK_ENABLE();
+  /* TIM3 interrupt Init */
+  HAL_NVIC_SetPriority(TIM3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(TIM3_IRQn);
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 10999;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 10000;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+
+}
+
 /**
   * Enable DMA controller clock
   */
@@ -249,16 +329,16 @@ static void NonSecureSecureTransferCompleteCallback(DMA_HandleTypeDef *hdma_memt
 }
 
 
-/**
-  * @brief  DMA non-secure to secure transfer complete callback
-  * @note   This function is executed when the transfer complete interrupt
-  *         is generated
-  * @retval None
-  */
-static void NonSecureNonSecureTransferCompleteCallback(DMA_HandleTypeDef *hdma_memtomem_dma1_channelx)
-{
-  transferCompleteDetected = 1;
-}
+///**
+//  * @brief  DMA non-secure to secure transfer complete callback
+//  * @note   This function is executed when the transfer complete interrupt
+//  *         is generated
+//  * @retval None
+//  */
+//static void NonSecureNonSecureTransferCompleteCallback(DMA_HandleTypeDef *hdma_memtomem_dma1_channelx)
+//{
+//  transferCompleteDetected = 1;
+//}
 /* USER CODE END 4 */
 
 /**

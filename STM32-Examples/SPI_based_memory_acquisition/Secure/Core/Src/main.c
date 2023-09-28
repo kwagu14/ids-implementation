@@ -51,9 +51,15 @@ DMA_HandleTypeDef hdma_spi3_rx;
 DMA_HandleTypeDef hdma_spi3_tx;
 
 UART_HandleTypeDef huart1;
+static __IO uint32_t SecureToSecureTransferErrorDetected;    /* Set to 1 if an error transfer is detected */
+static __IO uint32_t SecureToSecureTransferCompleteDetected; /* Set to 1 if transfer is correctly completed */
 
 DMA_HandleTypeDef hdma_memtomem_dma1_channel1;
-DMA_HandleTypeDef hdma_memtomem_dma1_channel2;
+
+//channel for non-secure to non-secure memory transfer; may be able to delete
+//DMA_HandleTypeDef hdma_memtomem_dma1_channel2;
+
+DMA_HandleTypeDef hdma_memtomem_dma1_channel5;
 /* USER CODE BEGIN PV */
 
 //initial SPI transfer state
@@ -61,8 +67,22 @@ __IO uint32_t wTransferState = TRANSFER_WAIT;
 
 //holds non-secure memory blocks
 uint8_t SEC_Mem_Buffer[BUFFER_SIZE];
-uint8_t aTxBuffer[BUFFER_SIZE];
+//uint8_t SEC_Classification_Buffer[BUFFER_SIZE];
+//uint8_t aTxBuffer[BUFFER_SIZE];
 uint8_t aRxBuffer[BUFFER_SIZE];
+uint8_t START_CLASSIFICATION_SIG[] = "<START_CLASSIFICATION>";
+uint8_t END_CLASSIFICATION_SIG[] = "<END_CLASSIFICATION>";
+int END_CLASSIFICATION_SIZE = 20;
+int START_CLASSIFICATION_SIZE = 22;
+int MEM_DUMP_SIZE = 262144;
+//init blocknum to 0th block
+uint8_t blockNum = 0;
+//number of bytes sent to server so far (0 if transfer hasn't started yet)
+int numBytesSent = 0;
+//current non-secure memory address for transfers
+uint32_t* current_address = (uint32_t*) NSEC_MEM_START;
+//this tells the tim3 interrupt if memory transfer is happening
+uint8_t mem_ready = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -124,9 +144,11 @@ int main(void)
   //register callbacks
   HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel1, HAL_DMA_XFER_CPLT_CB_ID, NonSecureToSecureTransferComplete);
   HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel1, HAL_DMA_XFER_ERROR_CB_ID, NonSecureToSecureTransferError);
-
-  HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel2, HAL_DMA_XFER_CPLT_CB_ID, NonSecureToNonSecureTransferComplete);
-  HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel2, HAL_DMA_XFER_ERROR_CB_ID, NonSecureToNonSecureTransferError);
+  //these are non-secure to non-secure transfer callbacks; may be able to delete in future
+  //HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel2, HAL_DMA_XFER_CPLT_CB_ID, NonSecureToNonSecureTransferComplete);
+  //HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel2, HAL_DMA_XFER_ERROR_CB_ID, NonSecureToNonSecureTransferError);
+  HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel5, HAL_DMA_XFER_CPLT_CB_ID, SecureToSecureTransferComplete);
+  HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel5, HAL_DMA_XFER_ERROR_CB_ID, SecureToSecureTransferError);
   /* USER CODE END 2 */
 
   /*************** Setup and jump to non-secure *******************************/
@@ -347,7 +369,7 @@ static void MX_SPI3_Init(void)
   hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi3.Init.NSS = SPI_NSS_SOFT;
-  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
+  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
   hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi3.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi3.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -464,58 +486,100 @@ static void MX_DMA_Init(void)
     Error_Handler( );
   }
 
+  //non-secure to non-secure DMA channel config
+//  /* Configure DMA request hdma_memtomem_dma1_channel2 on DMA1_Channel2 */
+//  hdma_memtomem_dma1_channel2.Instance = DMA1_Channel2;
+//  hdma_memtomem_dma1_channel2.Init.Request = DMA_REQUEST_MEM2MEM;
+//  hdma_memtomem_dma1_channel2.Init.Direction = DMA_MEMORY_TO_MEMORY;
+//  hdma_memtomem_dma1_channel2.Init.PeriphInc = DMA_PINC_ENABLE;
+//  hdma_memtomem_dma1_channel2.Init.MemInc = DMA_MINC_ENABLE;
+//  hdma_memtomem_dma1_channel2.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+//  hdma_memtomem_dma1_channel2.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+//  hdma_memtomem_dma1_channel2.Init.Mode = DMA_NORMAL;
+//  hdma_memtomem_dma1_channel2.Init.Priority = DMA_PRIORITY_LOW;
+//  if (HAL_DMA_Init(&hdma_memtomem_dma1_channel2) != HAL_OK)
+//  {
+//    Error_Handler( );
+//  }
+//
+//  /*  */
+//  if (HAL_DMA_ConfigChannelAttributes(&hdma_memtomem_dma1_channel2, DMA_CHANNEL_NPRIV) != HAL_OK)
+//  {
+//    Error_Handler( );
+//  }
+//
+//  /*  */
+//  if (HAL_DMA_ConfigChannelAttributes(&hdma_memtomem_dma1_channel2, DMA_CHANNEL_SEC) != HAL_OK)
+//  {
+//    Error_Handler( );
+//  }
+//
+//  /*  */
+//  if (HAL_DMA_ConfigChannelAttributes(&hdma_memtomem_dma1_channel2, DMA_CHANNEL_SRC_NSEC) != HAL_OK)
+//  {
+//    Error_Handler( );
+//  }
+//
+//  /*  */
+//  if (HAL_DMA_ConfigChannelAttributes(&hdma_memtomem_dma1_channel2, DMA_CHANNEL_DEST_NSEC) != HAL_OK)
+//  {
+//    Error_Handler( );
+//  }
+
   /* Configure DMA request hdma_memtomem_dma1_channel2 on DMA1_Channel2 */
-  hdma_memtomem_dma1_channel2.Instance = DMA1_Channel2;
-  hdma_memtomem_dma1_channel2.Init.Request = DMA_REQUEST_MEM2MEM;
-  hdma_memtomem_dma1_channel2.Init.Direction = DMA_MEMORY_TO_MEMORY;
-  hdma_memtomem_dma1_channel2.Init.PeriphInc = DMA_PINC_ENABLE;
-  hdma_memtomem_dma1_channel2.Init.MemInc = DMA_MINC_ENABLE;
-  hdma_memtomem_dma1_channel2.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-  hdma_memtomem_dma1_channel2.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-  hdma_memtomem_dma1_channel2.Init.Mode = DMA_NORMAL;
-  hdma_memtomem_dma1_channel2.Init.Priority = DMA_PRIORITY_LOW;
-  if (HAL_DMA_Init(&hdma_memtomem_dma1_channel2) != HAL_OK)
-  {
-    Error_Handler( );
-  }
+    hdma_memtomem_dma1_channel5.Instance = DMA1_Channel5;
+    hdma_memtomem_dma1_channel5.Init.Request = DMA_REQUEST_MEM2MEM;
+    hdma_memtomem_dma1_channel5.Init.Direction = DMA_MEMORY_TO_MEMORY;
+    hdma_memtomem_dma1_channel5.Init.PeriphInc = DMA_PINC_ENABLE;
+    hdma_memtomem_dma1_channel5.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_memtomem_dma1_channel5.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    hdma_memtomem_dma1_channel5.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+    hdma_memtomem_dma1_channel5.Init.Mode = DMA_NORMAL;
+    hdma_memtomem_dma1_channel5.Init.Priority = DMA_PRIORITY_LOW;
+    if (HAL_DMA_Init(&hdma_memtomem_dma1_channel5) != HAL_OK)
+    {
+      Error_Handler( );
+    }
 
-  /*  */
-  if (HAL_DMA_ConfigChannelAttributes(&hdma_memtomem_dma1_channel2, DMA_CHANNEL_NPRIV) != HAL_OK)
-  {
-    Error_Handler( );
-  }
+    /*  */
+    if (HAL_DMA_ConfigChannelAttributes(&hdma_memtomem_dma1_channel5, DMA_CHANNEL_NPRIV) != HAL_OK)
+    {
+      Error_Handler( );
+    }
 
-  /*  */
-  if (HAL_DMA_ConfigChannelAttributes(&hdma_memtomem_dma1_channel2, DMA_CHANNEL_SEC) != HAL_OK)
-  {
-    Error_Handler( );
-  }
+    /*  */
+    if (HAL_DMA_ConfigChannelAttributes(&hdma_memtomem_dma1_channel5, DMA_CHANNEL_SEC) != HAL_OK)
+    {
+      Error_Handler( );
+    }
 
-  /*  */
-  if (HAL_DMA_ConfigChannelAttributes(&hdma_memtomem_dma1_channel2, DMA_CHANNEL_SRC_NSEC) != HAL_OK)
-  {
-    Error_Handler( );
-  }
+    /*  */
+    if (HAL_DMA_ConfigChannelAttributes(&hdma_memtomem_dma1_channel5, DMA_CHANNEL_SRC_SEC) != HAL_OK)
+    {
+      Error_Handler( );
+    }
 
-  /*  */
-  if (HAL_DMA_ConfigChannelAttributes(&hdma_memtomem_dma1_channel2, DMA_CHANNEL_DEST_NSEC) != HAL_OK)
-  {
-    Error_Handler( );
-  }
+    /*  */
+    if (HAL_DMA_ConfigChannelAttributes(&hdma_memtomem_dma1_channel5, DMA_CHANNEL_DEST_SEC) != HAL_OK)
+    {
+      Error_Handler( );
+    }
 
   /* DMA interrupt init */
   /* DMA1_Channel1_IRQn interrupt configuration */
    HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
    HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
 	/* DMA1_Channel2_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 0, 0);
-	HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
+//	HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 0, 0);
+//	HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
   /* DMA1_Channel3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
   /* DMA1_Channel4_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel4_IRQn);
+  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
 
 }
 
@@ -567,7 +631,21 @@ static void MX_GPIO_Init(void)
   */
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-  printf("SPI Transfer complete.\n\r");
+//  printf("SPI Transfer complete.\n\r");
+  wTransferState = TRANSFER_COMPLETE;
+}
+
+
+void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+//  printf("SPI transmission complete.\n\r");
+  wTransferState = TRANSFER_COMPLETE;
+}
+
+
+void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+//  printf("SPI Reception complete.\n\r");
   wTransferState = TRANSFER_COMPLETE;
 }
 
@@ -579,6 +657,58 @@ PUTCHAR_PROTOTYPE
 
   return ch;
 }
+
+
+
+//Returns position if s1 is substring of s2; -1 otherwise
+int SearchForSig(uint8_t* signal, int sizeOfSig, uint8_t* data, int dataSize)
+{
+    int M = sizeOfSig;
+    int N = dataSize;
+    int retval = -1;
+
+
+    /* A loop to slide signal one by one while comparing */
+    for (int i = 0; i <= N - M; i++) {
+      int j;
+
+        //for current index i, check for signal match
+      for (j = 0; j < M; j++){
+        if (data[i + j] != signal[j]){
+          break;
+        }
+      }
+      if (j == M){
+          retval = i;
+          break;
+      }
+    }
+
+    return retval;
+}
+
+
+
+void SecureToSecureTransferComplete(DMA_HandleTypeDef *hdma_memtomem_dma1_channel3)
+{
+	//this is the non-secure callback function. Set the variables upon completion
+	SecureToSecureTransferCompleteDetected = 1;
+}
+
+/**
+  * @brief  DMA conversion error callback
+  * @note   This function is executed when the transfer error interrupt
+  *         is generated during DMA transfer
+  * @retval None
+  */
+void SecureToSecureTransferError(DMA_HandleTypeDef *hdma_memtomem_dma1_channel3)
+{
+  /* Error detected by secure application */
+  Error_Handler();
+}
+
+
+
 /* USER CODE END 4 */
 
 /**

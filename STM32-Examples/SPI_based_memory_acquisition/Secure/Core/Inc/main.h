@@ -60,13 +60,25 @@ typedef funcptr funcptr_NS;
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
 extern DMA_HandleTypeDef hdma_memtomem_dma1_channel1;
-extern DMA_HandleTypeDef hdma_memtomem_dma1_channel2;
+//extern DMA_HandleTypeDef hdma_memtomem_dma1_channel2;
+extern DMA_HandleTypeDef hdma_memtomem_dma1_channel5;
 extern SPI_HandleTypeDef hspi3;
 extern __IO uint32_t wTransferState;
 #define BUFFER_SIZE 1024U
 extern uint8_t SEC_Mem_Buffer[BUFFER_SIZE];
-extern uint8_t aTxBuffer[BUFFER_SIZE];
+//extern uint8_t SEC_Classification_Buffer[BUFFER_SIZE];
+//extern uint8_t aTxBuffer[BUFFER_SIZE];
 extern uint8_t aRxBuffer[BUFFER_SIZE];
+extern uint8_t START_CLASSIFICATION_SIG[];
+extern uint8_t END_CLASSIFICATION_SIG[];
+extern int END_CLASSIFICATION_SIZE;
+extern int START_CLASSIFICATION_SIZE;
+extern int MEM_DUMP_SIZE;
+extern uint8_t blockNum;
+extern int numBytesSent;
+extern uint32_t* current_address;
+extern uint8_t mem_ready;
+//static __IO uint32_t transferCompleteDetected;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -78,10 +90,14 @@ extern uint8_t aRxBuffer[BUFFER_SIZE];
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+void NonSecureSecureTransferCompleteCallback(DMA_HandleTypeDef *hdma_memtomem_dma1_channelx);
 void NonSecureToSecureTransferComplete(DMA_HandleTypeDef *hdma_memtomem_dma1_channel1);
 void NonSecureToSecureTransferError(DMA_HandleTypeDef *hdma_memtomem_dma1_channel21);
-void NonSecureToNonSecureTransferComplete(DMA_HandleTypeDef *hdma_memtomem_dma1_channel2);
-void NonSecureToNonSecureTransferError(DMA_HandleTypeDef *hdma_memtomem_dma1_channel2);
+//void NonSecureToNonSecureTransferComplete(DMA_HandleTypeDef *hdma_memtomem_dma1_channel2);
+//void NonSecureToNonSecureTransferError(DMA_HandleTypeDef *hdma_memtomem_dma1_channel2);
+void SecureToSecureTransferComplete(DMA_HandleTypeDef *hdma_memtomem_dma1_channel5);
+void SecureToSecureTransferError(DMA_HandleTypeDef *hdma_memtomem_dma1_channel5);
+int SearchForSig(uint8_t* signal, int sizeOfSig, uint8_t* data, int dataSize);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -89,6 +105,7 @@ void NonSecureToNonSecureTransferError(DMA_HandleTypeDef *hdma_memtomem_dma1_cha
 #define USART1_TX_GPIO_Port GPIOA
 #define USART1_RX_Pin GPIO_PIN_10
 #define USART1_RX_GPIO_Port GPIOA
+
 
 /* USER CODE BEGIN Private defines */
 

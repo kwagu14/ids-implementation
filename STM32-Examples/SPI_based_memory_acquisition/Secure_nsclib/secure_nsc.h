@@ -45,9 +45,16 @@ void SECURE_print_Log(char* string);
 ErrorStatus SECURE_DMA_Fetch_NonSecure_Mem(uint32_t *nsc_mem_buffer, uint32_t Size, void *pCallback);
 ErrorStatus SECURE_DATA_Last_Buffer_Compare(uint32_t* addr);
 ErrorStatus SECURE_print_Buffer(uint32_t * buf, uint32_t size);
-ErrorStatus SECURE_DMA_NonSecure_Mem_Transfer(uint32_t *src_buffer, uint32_t *dest_buffer, uint32_t size, void* func);
+//ErrorStatus SECURE_DMA_NonSecure_Mem_Transfer(uint32_t *src_buffer, uint32_t *dest_buffer, uint32_t size, void* func);
 ErrorStatus SECURE_SPI_Send_Data();
 ErrorStatus SECURE_SPI_Toggle_Comm(int state);
+ErrorStatus SECURE_SPI_Send_Start_Signal();
+ErrorStatus SECURE_SPI_Send_End_Signal();
+ErrorStatus SECURE_SPI_Receive_Classification();
+void SECURE_print_Num(int num);
+void SECURE_Send_Mem_Block();
+void SECURE_Mem_Ready();
+int SECURE_Poll_Mem_Ready();
 
 #endif /* SECURE_NSC_H */
 /* USER CODE END Non_Secure_CallLib_h */
