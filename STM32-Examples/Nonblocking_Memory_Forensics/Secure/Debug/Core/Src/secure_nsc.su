@@ -1,0 +1,4 @@
+../Core/Src/secure_nsc.c:46:20:SECURE_print_Log	16	static
+../Core/Src/secure_nsc.c:52:20:SECURE_print_Num	16	static
+../Core/Src/secure_nsc.c:99:20:SECURE_Send_Mem_Block	8	static
+../Core/Src/secure_nsc.c:150:20:SECURE_RegisterCallback	16	static

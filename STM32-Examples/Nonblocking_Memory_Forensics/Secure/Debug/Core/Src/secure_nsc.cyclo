@@ -1,0 +1,4 @@
+secure_nsc.c:46:20:SECURE_print_Log	1
+secure_nsc.c:52:20:SECURE_print_Num	1
+secure_nsc.c:99:20:SECURE_Send_Mem_Block	7
+secure_nsc.c:150:20:SECURE_RegisterCallback	4
