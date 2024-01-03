@@ -11,3 +11,4 @@
 ../Core/Src/stm32l5xx_it.c:221:6:DMA1_Channel2_IRQHandler	8	static
 ../Core/Src/stm32l5xx_it.c:235:6:DMA1_Channel3_IRQHandler	8	static
 ../Core/Src/stm32l5xx_it.c:247:6:DMA1_Channel1_IRQHandler	8	static
+../Core/Src/stm32l5xx_it.c:258:6:DMA1_Channel4_IRQHandler	8	static

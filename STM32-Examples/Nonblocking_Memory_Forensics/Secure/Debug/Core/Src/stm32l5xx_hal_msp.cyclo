@@ -1,5 +1,7 @@
 stm32l5xx_hal_msp.c:66:6:HAL_MspInit	1
-stm32l5xx_hal_msp.c:93:6:HAL_SPI_MspInit	12
-stm32l5xx_hal_msp.c:214:6:HAL_SPI_MspDeInit	2
-stm32l5xx_hal_msp.c:249:6:HAL_UART_MspInit	3
-stm32l5xx_hal_msp.c:296:6:HAL_UART_MspDeInit	2
+stm32l5xx_hal_msp.c:93:6:HAL_HASH_MspInit	1
+stm32l5xx_hal_msp.c:112:6:HAL_HASH_MspDeInit	1
+stm32l5xx_hal_msp.c:131:6:HAL_SPI_MspInit	12
+stm32l5xx_hal_msp.c:252:6:HAL_SPI_MspDeInit	2
+stm32l5xx_hal_msp.c:287:6:HAL_UART_MspInit	3
+stm32l5xx_hal_msp.c:334:6:HAL_UART_MspDeInit	2

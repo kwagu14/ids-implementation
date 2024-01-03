@@ -85,6 +85,44 @@ void HAL_MspInit(void)
 }
 
 /**
+* @brief HASH MSP Initialization
+* This function configures the hardware resources used in this example
+* @param hhash: HASH handle pointer
+* @retval None
+*/
+void HAL_HASH_MspInit(HASH_HandleTypeDef* hhash)
+{
+  /* USER CODE BEGIN HASH_MspInit 0 */
+
+  /* USER CODE END HASH_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_HASH_CLK_ENABLE();
+  /* USER CODE BEGIN HASH_MspInit 1 */
+
+  /* USER CODE END HASH_MspInit 1 */
+
+}
+
+/**
+* @brief HASH MSP De-Initialization
+* This function freeze the hardware resources used in this example
+* @param hhash: HASH handle pointer
+* @retval None
+*/
+void HAL_HASH_MspDeInit(HASH_HandleTypeDef* hhash)
+{
+  /* USER CODE BEGIN HASH_MspDeInit 0 */
+
+  /* USER CODE END HASH_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_HASH_CLK_DISABLE();
+  /* USER CODE BEGIN HASH_MspDeInit 1 */
+
+  /* USER CODE END HASH_MspDeInit 1 */
+
+}
+
+/**
 * @brief SPI MSP Initialization
 * This function configures the hardware resources used in this example
 * @param hspi: SPI handle pointer
@@ -133,7 +171,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     hdma_spi3_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
     hdma_spi3_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
     hdma_spi3_rx.Init.Mode = DMA_NORMAL;
-    hdma_spi3_rx.Init.Priority = DMA_PRIORITY_HIGH;
+    hdma_spi3_rx.Init.Priority = DMA_PRIORITY_LOW;
     if (HAL_DMA_Init(&hdma_spi3_rx) != HAL_OK)
     {
       Error_Handler();
@@ -170,7 +208,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     hdma_spi3_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
     hdma_spi3_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
     hdma_spi3_tx.Init.Mode = DMA_NORMAL;
-    hdma_spi3_tx.Init.Priority = DMA_PRIORITY_HIGH;
+    hdma_spi3_tx.Init.Priority = DMA_PRIORITY_LOW;
     if (HAL_DMA_Init(&hdma_spi3_tx) != HAL_OK)
     {
       Error_Handler();

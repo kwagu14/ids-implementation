@@ -33,7 +33,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -59,9 +59,14 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define WHITE_LED_Pin GPIO_PIN_6
+#define WHITE_LED_GPIO_Port GPIOC
+#define IR_SENSOR_PIN_Pin GPIO_PIN_11
+#define IR_SENSOR_PIN_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
-
+#define MAX_NIC_MESSAGE_LEN 200
+#define TCP_SEND_IR_COMMAND_SIZE 43
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

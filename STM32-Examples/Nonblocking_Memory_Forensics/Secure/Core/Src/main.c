@@ -46,6 +46,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+HASH_HandleTypeDef hhash;
+
 IWDG_HandleTypeDef hiwdg;
 
 SPI_HandleTypeDef hspi3;
@@ -55,30 +57,59 @@ DMA_HandleTypeDef hdma_spi3_tx;
 UART_HandleTypeDef huart1;
 
 DMA_HandleTypeDef hdma_memtomem_dma1_channel1;
+
+/************* NOT USED *******************/
+DMA_HandleTypeDef hdma_memtomem_dma1_channel4;
+
 /* USER CODE BEGIN PV */
 
 //initial SPI transfer state
 __IO uint32_t wTransferState = TRANSFER_WAIT;
 //DMA transfer state
+
 __IO uint32_t NonsecureToSecureTransferCompleteDetected;
-static __IO uint32_t NonsecureToSecureTransferErrorDetected;
+__IO uint32_t NonsecureToSecureTransferErrorDetected;
+
+/************* NOT USED *******************/
+static __IO uint32_t SecureToSecureTransferErrorDetected;    /* Set to 1 if an error transfer is detected */
+static __IO uint32_t SecureToSecureTransferCompleteDetected; /* Set to 1 if transfer is correctly completed */
 
 //holds non-secure memory blocks before they get sent through SPI
 uint8_t SEC_Mem_Buffer[BUFFER_SIZE];
+uint8_t SEC_Mem_Digest[16];
+//stores the last known hash of memory blocks
+uint8_t SEC_Mem_Hashes[256][16];
 //receives classification from server
 uint8_t aRxBuffer[BUFFER_SIZE];
 //these signals get sent to this board in the SPI Stream to delimit the classification
 uint8_t START_CLASSIFICATION_SIG[] = "<START_CLASSIFICATION>";
 uint8_t END_CLASSIFICATION_SIG[] = "<END_CLASSIFICATION>";
+uint8_t END_TRANSMISSION_SIG[] = "<END_TRANSMISSION>";
+uint8_t START_TRANSMISSION_SIG[] = "<START_TRANSMISSION>";
+uint8_t START_SIZE_SIG[] = "<START_SIZE>";
+uint8_t END_SIZE_SIG[] = "<END_SIZE>";
+uint8_t START_BLOCK_NUMS_SIG[] = "<START_BLOCK_NUMS>";
+uint8_t END_BLOCK_NUMS_SIG[] = "<END_BLOCK_NUMS>";
+uint8_t START_BLOCK_LIST_SIZE_SIG[] = "<START_BLOCK_LIST_SIZE>";
+uint8_t END_BLOCK_LIST_SIZE_SIG[] = "<END_BLOCK_LIST_SIZE>";
 //the size of the above signals
 int END_CLASSIFICATION_SIZE = 20;
 int START_CLASSIFICATION_SIZE = 22;
+int START_SIZE_SIG_SIZE = 12;
+int END_SIZE_SIG_SIZE = 10;
+int START_TRANS_SIZE = 20;
+int END_TRANS_SIZE = 18;
+int START_BLOCK_NUMS_SIZE = 18;
+int END_BLOCK_NUMS_SIZE = 16;
+int START_BLOCK_LIST_SIZE = 23;
+int END_BLOCK_LIST_SIZE = 21;
 //the total size of the memory dump (256KB)
 int MEM_DUMP_SIZE = 262144;
 //The block number to be sent next to the server
 uint32_t blockNum = 0;
 //number of bytes sent to server so far (0 if transfer hasn't started yet)
 int numBytesSent = 0;
+
 //current non-secure memory address for transfers
 uint32_t* current_address = (uint32_t*) NSEC_MEM_START;
 //this tells memory forensics if a memory transfer is currently happening
@@ -86,6 +117,7 @@ uint8_t mem_dump_in_prog = 0;
 //tells memory forensics if a memory dump is due (if transfer not already happening)
 uint8_t mem_dump_due = 0;
 uint32_t iter = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -98,9 +130,17 @@ static void MX_GTZC_S_Init(void);
 static void MX_SPI3_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_IWDG_Init(void);
+static void MX_HASH_Init(void);
+/* USER CODE BEGIN PFP */
 static void NonsecureToSecureTransferComplete(DMA_HandleTypeDef *hdma_memtomem_dma1_channel1);
 static void NonsecureToSecureTransferError(DMA_HandleTypeDef *hdma_memtomem_dma1_channel1);
-/* USER CODE BEGIN PFP */
+
+/************* NOT USED *******************/
+static void SecureToSecureTransferComplete(DMA_HandleTypeDef *hdma_memtomem_dma1_channel4);
+static void SecureToSecureTransferError(DMA_HandleTypeDef *hdma_memtomem_dma1_channel4);
+
+void SECURE_Print_Mem_Buffer(uint8_t* buf, int size);
+void SECURE_DMA_Fetch_NonSecure_Mem(uint32_t *nsc_mem_buffer, uint32_t Size);
 
 /* USER CODE END PFP */
 
@@ -145,10 +185,58 @@ int main(void)
   MX_ICACHE_Init();
   MX_SPI3_Init();
   MX_USART1_UART_Init();
-  MX_IWDG_Init();
+//  MX_IWDG_Init();
+  MX_HASH_Init();
+
   /* USER CODE BEGIN 2 */
   HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel1, HAL_DMA_XFER_CPLT_CB_ID, NonsecureToSecureTransferComplete);
   HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel1, HAL_DMA_XFER_ERROR_CB_ID, NonsecureToSecureTransferError);
+
+  /************* NOT USED *******************/
+  /* DMA1 Channel4: Select Callbacks functions called after Transfer complete and Transfer error */ /*NOT USED***********/
+  HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel4, HAL_DMA_XFER_CPLT_CB_ID, SecureToSecureTransferComplete);
+  HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel4, HAL_DMA_XFER_ERROR_CB_ID, SecureToSecureTransferError);
+
+
+  /******************************* BUILD THE INITIAL MEMORY HASH TABLE *********************************************/
+  printf("SECURE START: \n\r");
+  uint32_t* current_address = (uint32_t*) NSEC_MEM_START;
+  int count = 0;
+  while((uint32_t) current_address <= NSEC_MEM_END && (NSEC_MEM_END - (uint32_t)current_address) +1 >= BUFFER_SIZE){
+	  //get the current block
+	  if(HAL_DMA_Start_IT(&hdma_memtomem_dma1_channel1, (uint32_t)current_address, (uint32_t)&SEC_Mem_Buffer, BUFFER_SIZE/4) != HAL_OK){
+	 	  printf("could not start the secure to secure memory transfer.\n\r");
+	   }
+	  //wait for completion
+	  while ((NonsecureToSecureTransferCompleteDetected == 0) &&
+	         (NonsecureToSecureTransferErrorDetected == 0));
+
+	  //compute the hash
+	  if(HAL_HASH_MD5_Start(&hhash, (uint8_t*)SEC_Mem_Buffer, BUFFER_SIZE, SEC_Mem_Digest, 0xff) != HAL_OK){
+		  printf("There's an issue with the hash operation\n\r");
+	  }
+
+	  //store the hash in the memory hashes buffer
+	  for(int i = 0; i < 16; i++){
+		  SEC_Mem_Hashes[count][i] = SEC_Mem_Digest[i];
+	  }
+
+	  //increment variables
+	  count++;
+	  current_address += BUFFER_SIZE/4;
+
+  }
+
+
+  //PRINT THE HASHES
+//  printf("======================= FINAL HASH VALS =========================\n\r");
+//  for(int j = 0; j< 256; j++){
+//	  for(int i = 0; i<16; i++){
+//	 	 //we'll print out bytes at a time
+//	 	printf("%x", SEC_Mem_Hashes[j][i]);
+//	  }
+//	  printf("\n\r");
+//  }
 
   /* USER CODE END 2 */
 
@@ -271,6 +359,10 @@ static void MX_GTZC_S_Init(void)
   {
     Error_Handler();
   }
+  if (HAL_GTZC_TZSC_ConfigPeriphAttributes(GTZC_PERIPH_HASH, GTZC_TZSC_PERIPH_SEC|GTZC_TZSC_PERIPH_NPRIV) != HAL_OK)
+  {
+    Error_Handler();
+  }
   MPCBB_NonSecureArea_Desc.SecureRWIllegalMode = GTZC_MPCBB_SRWILADIS_ENABLE;
   MPCBB_NonSecureArea_Desc.InvertSecureState = GTZC_MPCBB_INVSECSTATE_NOT_INVERTED;
   MPCBB_NonSecureArea_Desc.AttributeConfig.MPCBB_SecConfig_array[0] =   0xFFFFFFFF;
@@ -318,6 +410,32 @@ static void MX_GTZC_S_Init(void)
   /* USER CODE BEGIN GTZC_S_Init 2 */
 
   /* USER CODE END GTZC_S_Init 2 */
+
+}
+
+/**
+  * @brief HASH Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_HASH_Init(void)
+{
+
+  /* USER CODE BEGIN HASH_Init 0 */
+
+  /* USER CODE END HASH_Init 0 */
+
+  /* USER CODE BEGIN HASH_Init 1 */
+
+  /* USER CODE END HASH_Init 1 */
+  hhash.Init.DataType = HASH_DATATYPE_32B;
+  if (HAL_HASH_Init(&hhash) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN HASH_Init 2 */
+
+  /* USER CODE END HASH_Init 2 */
 
 }
 
@@ -370,8 +488,8 @@ static void MX_IWDG_Init(void)
   /* USER CODE END IWDG_Init 1 */
   hiwdg.Instance = IWDG;
   hiwdg.Init.Prescaler = IWDG_PRESCALER_32;
-  hiwdg.Init.Window = 2499;
-  hiwdg.Init.Reload = 2499;
+  hiwdg.Init.Window = 1100;
+  hiwdg.Init.Reload = 1100;
   if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
   {
     Error_Handler();
@@ -474,6 +592,7 @@ static void MX_USART1_UART_Init(void)
   * Enable DMA controller clock
   * Configure DMA for memory to memory transfers
   *   hdma_memtomem_dma1_channel1
+  *   hdma_memtomem_dma1_channel4
   */
 static void MX_DMA_Init(void)
 {
@@ -488,10 +607,10 @@ static void MX_DMA_Init(void)
   hdma_memtomem_dma1_channel1.Init.Direction = DMA_MEMORY_TO_MEMORY;
   hdma_memtomem_dma1_channel1.Init.PeriphInc = DMA_PINC_ENABLE;
   hdma_memtomem_dma1_channel1.Init.MemInc = DMA_MINC_ENABLE;
-  hdma_memtomem_dma1_channel1.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-  hdma_memtomem_dma1_channel1.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+  hdma_memtomem_dma1_channel1.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+  hdma_memtomem_dma1_channel1.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
   hdma_memtomem_dma1_channel1.Init.Mode = DMA_NORMAL;
-  hdma_memtomem_dma1_channel1.Init.Priority = DMA_PRIORITY_HIGH;
+  hdma_memtomem_dma1_channel1.Init.Priority = DMA_PRIORITY_LOW;
   if (HAL_DMA_Init(&hdma_memtomem_dma1_channel1) != HAL_OK)
   {
     Error_Handler( );
@@ -521,8 +640,46 @@ static void MX_DMA_Init(void)
     Error_Handler( );
   }
 
+  /* Configure DMA request hdma_memtomem_dma1_channel4 on DMA1_Channel4 */
+  hdma_memtomem_dma1_channel4.Instance = DMA1_Channel4;
+  hdma_memtomem_dma1_channel4.Init.Request = DMA_REQUEST_MEM2MEM;
+  hdma_memtomem_dma1_channel4.Init.Direction = DMA_MEMORY_TO_MEMORY;
+  hdma_memtomem_dma1_channel4.Init.PeriphInc = DMA_PINC_ENABLE;
+  hdma_memtomem_dma1_channel4.Init.MemInc = DMA_MINC_ENABLE;
+  hdma_memtomem_dma1_channel4.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+  hdma_memtomem_dma1_channel4.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
+  hdma_memtomem_dma1_channel4.Init.Mode = DMA_NORMAL;
+  hdma_memtomem_dma1_channel4.Init.Priority = DMA_PRIORITY_LOW;
+  if (HAL_DMA_Init(&hdma_memtomem_dma1_channel4) != HAL_OK)
+  {
+    Error_Handler( );
+  }
+
+  /*  */
+  if (HAL_DMA_ConfigChannelAttributes(&hdma_memtomem_dma1_channel4, DMA_CHANNEL_NPRIV) != HAL_OK)
+  {
+    Error_Handler( );
+  }
+
+  /*  */
+  if (HAL_DMA_ConfigChannelAttributes(&hdma_memtomem_dma1_channel4, DMA_CHANNEL_SEC) != HAL_OK)
+  {
+    Error_Handler( );
+  }
+
+  /*  */
+  if (HAL_DMA_ConfigChannelAttributes(&hdma_memtomem_dma1_channel4, DMA_CHANNEL_SRC_SEC) != HAL_OK)
+  {
+    Error_Handler( );
+  }
+
+  /*  */
+  if (HAL_DMA_ConfigChannelAttributes(&hdma_memtomem_dma1_channel4, DMA_CHANNEL_DEST_SEC) != HAL_OK)
+  {
+    Error_Handler( );
+  }
+
   /* DMA interrupt init */
-  /* DMA1_Channel2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
   /* DMA1_Channel2_IRQn interrupt configuration */
@@ -531,6 +688,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
+  /* DMA1_Channel4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel4_IRQn);
 
 }
 
@@ -547,9 +707,9 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
   HAL_PWREx_EnableVddIO2();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
@@ -557,7 +717,11 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
 
   /*IO attributes management functions */
-  HAL_GPIO_ConfigPinAttributes(GPIOC, GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_NSEC);
+  HAL_GPIO_ConfigPinAttributes(GPIOC, GPIO_PIN_11|GPIO_PIN_10|GPIO_PIN_14|GPIO_PIN_15
+                          |WHITE_LED_Pin, GPIO_PIN_NSEC);
+
+  /*IO attributes management functions */
+  HAL_GPIO_ConfigPinAttributes(IR_SENSOR_PIN_GPIO_Port, IR_SENSOR_PIN_Pin, GPIO_PIN_NSEC);
 
   /*Configure GPIO pin : PB13 */
   GPIO_InitStruct.Pin = GPIO_PIN_13;
@@ -702,165 +866,131 @@ void SECURE_SPI_Receive_Classification(){
 }
 
 
-
-//sends the start transmission signal out through the SPI Stream
-//this allows the esp32 to know where memory dump data starts
-void SECURE_SPI_Send_Start_Signal(){
-	wTransferState = TRANSFER_WAIT;
-	uint8_t start_signal[] = "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------<START_TRANSMISSION>";
-
-	printf("Sending the start transmission signal...\n\r");
-	if (HAL_SPI_Transmit_DMA(&hspi3, (uint8_t *)start_signal, BUFFER_SIZE) != HAL_OK)
-	 {
-		 /* Transfer error in transmission process */
-		 printf("There was an error in starting up tx.\n\r");
-		 Error_Handler();
-	 }
-
-	 /*##-2- Wait for the end of the transfer ###################################*/
-	 while (wTransferState == TRANSFER_WAIT)
-	 {
-	 }
-
-	//check SpI transfer state
-	 switch (wTransferState)
-	 {
-		 case TRANSFER_COMPLETE:
-		   break;
-		 default :
-		   Error_Handler();
-		   break;
-	 }
-}
-
-
-//sends the end transmission signal once a memory dump as fully gone out through SPI.
-//this is used by the esp32 to know when a memory dump has been fully received
-void SECURE_SPI_Send_End_Signal(){
-	wTransferState = TRANSFER_WAIT;
-	uint8_t end_signal[] = "<END_TRANSMISSION>----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------";
-
-	printf("Sending the end transmission signal...\n\r");
-	if (HAL_SPI_Transmit_DMA(&hspi3, (uint8_t *)end_signal, BUFFER_SIZE) != HAL_OK)
-	 {
-		 /* Transfer error in transmission process */
-		 printf("There was an error in starting up tx.\n\r");
-		 Error_Handler();
-	 }
-
-	 /*##-2- Wait for the end of the transfer ###################################*/
-	 while (wTransferState == TRANSFER_WAIT)
-	 {
-	 }
-
-	//check SpI transfer state
-	 switch (wTransferState)
-	 {
-		 case TRANSFER_COMPLETE:
-		   break;
-		 default :
-		   Error_Handler();
-		   break;
-	 }
-}
-
-
-
-//Sends data that has been previously loaded into SEC_Mem_Buffer by a DMA transfer from NSC to SC
-//this function must be called routinely until all memory buffers have been sent to the esp32
-void SECURE_SPI_Send_Data(){
-
-	wTransferState = TRANSFER_WAIT;
-	/*** send the current memory block from the non-secure flash bank to SPI ***/
-	if (HAL_SPI_Transmit_DMA(&hspi3, (uint8_t *) SEC_Mem_Buffer, BUFFER_SIZE) != HAL_OK)
-	 {
-		 /* Transfer error in transmission process */
-		 printf("There was an error in starting up tx.\n\r");
-		 Error_Handler();
-	 }
-
-	 /*##-2- Wait for the end of the transfer ###################################*/
-	 while (wTransferState == TRANSFER_WAIT)
-	 {
-	 }
-
-	//check SpI transfer state
-	 switch (wTransferState)
-	 {
-		 case TRANSFER_COMPLETE:
-		   break;
-		 default :
-		   printf("There was an error in transferring the memory dump.\n\r");
-		   Error_Handler();
-		   break;
-	 }
-
-}
-
-
-/**
-  * @brief  Secure service to toggle SPI communication on or off. Must be called @ beginning and end of SPI transmission
-  * @param state	SPI ON: 0 and SPI OFF: 1
-  * @retval SUCCESS or ERROR
-  */
-void SECURE_SPI_Toggle_Comm(int state){
-	if(state > 0){
-		//off state
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
-
-	}else{
-		//on state
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
-	}
-}
-
-
-
-
-/**
-  * @brief  Secure function to get non-secure data by dedicated DMA channel
-  *
-  * @param  nsc_mem_buffer		pointer to non-secure source buffer containing 256 words of memory (1024 bytes)
-  * @param  Size        		requested size of data (256 words)
-  * @param  func   				pointer to non-secure callback function on transfer end
-  * @retval SUCCESS or ERROR
-  */
-void SECURE_DMA_Fetch_NonSecure_Mem(uint32_t *nsc_mem_buffer, uint32_t Size)
-{
-
-  /* Check that the address range in non-secure */
-   if (cmse_check_address_range(nsc_mem_buffer, Size * sizeof(uint32_t), CMSE_NONSECURE))
-   {
-//	   printf("memory dump found to be in range.\n\r");
-	    if (HAL_DMA_Start_IT(&hdma_memtomem_dma1_channel1,
-	                             (uint32_t)nsc_mem_buffer,
-	                             (uint32_t)&SEC_Mem_Buffer,
-	                             BUFFER_SIZE) == HAL_OK)
-		{
-		  /* Transfer started */
-//	    	printf("Transfer has started\n\r");
-		}else{
-			printf("transfer was not able to start.\n\r");
-		}
-   }else{
-	   printf("Address out of range...\n\r");
-   }
-
-}
+//
+////sends the start transmission signal out through the SPI Stream
+////this allows the esp32 to know where memory dump data starts
+//void SECURE_SPI_Send_Start_Signal(){
+//	wTransferState = TRANSFER_WAIT;
+//	uint8_t start_signal[] = "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------<START_TRANSMISSION>";
+//
+//	printf("Sending the start transmission signal...\n\r");
+//	if (HAL_SPI_Transmit_DMA(&hspi3, (uint8_t *)start_signal, BUFFER_SIZE) != HAL_OK)
+//	 {
+//		 /* Transfer error in transmission process */
+//		 printf("There was an error in starting up tx.\n\r");
+//		 Error_Handler();
+//	 }
+//
+//	 /*##-2- Wait for the end of the transfer ###################################*/
+//	 while (wTransferState == TRANSFER_WAIT)
+//	 {
+//	 }
+//
+//	//check SpI transfer state
+//	 switch (wTransferState)
+//	 {
+//		 case TRANSFER_COMPLETE:
+//		   break;
+//		 default :
+//		   Error_Handler();
+//		   break;
+//	 }
+//}
+//
+//
+////sends the end transmission signal once a memory dump as fully gone out through SPI.
+////this is used by the esp32 to know when a memory dump has been fully received
+//void SECURE_SPI_Send_End_Signal(){
+//	wTransferState = TRANSFER_WAIT;
+//	uint8_t end_signal[] = "<END_TRANSMISSION>----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------";
+//
+//	printf("Sending the end transmission signal...\n\r");
+//	if (HAL_SPI_Transmit_DMA(&hspi3, (uint8_t *)end_signal, BUFFER_SIZE) != HAL_OK)
+//	 {
+//		 /* Transfer error in transmission process */
+//		 printf("There was an error in starting up tx.\n\r");
+//		 Error_Handler();
+//	 }
+//
+//	 /*##-2- Wait for the end of the transfer ###################################*/
+//	 while (wTransferState == TRANSFER_WAIT)
+//	 {
+//	 }
+//
+//	//check SpI transfer state
+//	 switch (wTransferState)
+//	 {
+//		 case TRANSFER_COMPLETE:
+//		   break;
+//		 default :
+//		   Error_Handler();
+//		   break;
+//	 }
+//}
+//
+//
+//
+////Sends data that has been previously loaded into SEC_Mem_Buffer by a DMA transfer from NSC to SC
+////this function must be called routinely until all memory buffers have been sent to the esp32
+//void SECURE_SPI_Send_Data(){
+//
+//	wTransferState = TRANSFER_WAIT;
+//	/*** send the current memory block from the non-secure flash bank to SPI ***/
+//	if (HAL_SPI_Transmit_DMA(&hspi3, (uint8_t *) SEC_Mem_Buffer, BUFFER_SIZE) != HAL_OK)
+//	 {
+//		 /* Transfer error in transmission process */
+//		 printf("There was an error in starting up tx.\n\r");
+//		 Error_Handler();
+//	 }
+//
+//	 /*##-2- Wait for the end of the transfer ###################################*/
+//	 while (wTransferState == TRANSFER_WAIT)
+//	 {
+//	 }
+//
+//	//check SpI transfer state
+//	 switch (wTransferState)
+//	 {
+//		 case TRANSFER_COMPLETE:
+//		   break;
+//		 default :
+//		   printf("There was an error in transferring the memory dump.\n\r");
+//		   Error_Handler();
+//		   break;
+//	 }
+//
+//}
+//
+//
+///**
+//  * @brief  Secure service to toggle SPI communication on or off. Must be called @ beginning and end of SPI transmission
+//  * @param state	SPI ON: 0 and SPI OFF: 1
+//  * @retval SUCCESS or ERROR
+//  */
+//void SECURE_SPI_Toggle_Comm(int state){
+//	if(state > 0){
+//		//off state
+//		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
+//
+//	}else{
+//		//on state
+//		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
+//	}
+//}
 
 
 
 //used in non-secure environment to check the secure memory buffer for successful transfer.
-void SECURE_Print_Mem_Buffer()
+void SECURE_Print_Mem_Buffer(uint8_t* buf, int size)
 {
 
   //print the contents of the first transfer
-	 for(int i = 0; i<BUFFER_SIZE; i++){
+	 for(int i = 0; i<size; i++){
 //		 if((i+1)%16==1){
 //			 printf("%08p|\t", addr);
 //		 }
 		 //we'll print out bytes at a time
-		printf("0x%02x\t", SEC_Mem_Buffer[i]);
+		printf("0x%02x\t", buf[i]);
 		if((i+1)%16==0){
 			printf("\n\r");
 		}
@@ -889,6 +1019,29 @@ static void NonsecureToSecureTransferComplete(DMA_HandleTypeDef *hdma_memtomem_d
 static void NonsecureToSecureTransferError(DMA_HandleTypeDef *hdma_memtomem_dma1_channel1)
 {
   NonsecureToSecureTransferErrorDetected = 1;
+}
+
+
+/**
+  * @brief  DMA conversion complete callback
+  * @note   This function is executed when the transfer complete interrupt
+  *         is generated
+  * @retval None
+  */
+static void SecureToSecureTransferComplete(DMA_HandleTypeDef *hdma_memtomem_dma1_channel4)
+{
+  SecureToSecureTransferCompleteDetected = 1;
+}
+
+/**
+  * @brief  DMA conversion error callback
+  * @note   This function is executed when the transfer error interrupt
+  *         is generated during DMA transfer
+  * @retval None
+  */
+static void SecureToSecureTransferError(DMA_HandleTypeDef *hdma_memtomem_dma1_channel4)
+{
+  SecureToSecureTransferErrorDetected = 1;
 }
 
 

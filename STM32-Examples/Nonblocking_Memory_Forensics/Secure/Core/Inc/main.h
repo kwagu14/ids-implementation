@@ -40,6 +40,7 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -59,24 +60,45 @@ typedef funcptr funcptr_NS;
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
+extern uint8_t SEC_Mem_Digest[16];
+extern HASH_HandleTypeDef hhash;
 extern IWDG_HandleTypeDef hiwdg;
 extern DMA_HandleTypeDef hdma_memtomem_dma1_channel1;
+extern DMA_HandleTypeDef hdma_memtomem_dma1_channel4;
 extern SPI_HandleTypeDef hspi3;
 extern __IO uint32_t wTransferState;
+extern uint8_t SEC_Mem_Hashes[256][16];
 #define BUFFER_SIZE 1024U
 extern uint8_t SEC_Mem_Buffer[BUFFER_SIZE];
 extern uint8_t aRxBuffer[BUFFER_SIZE];
 extern uint8_t START_CLASSIFICATION_SIG[];
 extern uint8_t END_CLASSIFICATION_SIG[];
+extern uint8_t START_SIZE_SIG[];
+extern uint8_t END_SIZE_SIG[];
+extern uint8_t END_TRANSMISSION_SIG[];
+extern uint8_t START_TRANSMISSION_SIG[];
+extern uint8_t START_BLOCK_NUMS_SIG[];
+extern uint8_t END_BLOCK_NUMS_SIG[];
+extern uint8_t START_BLOCK_LIST_SIZE_SIG[];
+extern uint8_t END_BLOCK_LIST_SIZE_SIG[];
 extern int END_CLASSIFICATION_SIZE;
 extern int START_CLASSIFICATION_SIZE;
+extern int START_SIZE_SIG_SIZE;
+extern int END_SIZE_SIG_SIZE;
+extern int START_TRANS_SIZE;
+extern int END_TRANS_SIZE;
 extern int MEM_DUMP_SIZE;
+extern int START_BLOCK_NUMS_SIZE;
+extern int END_BLOCK_NUMS_SIZE;
+extern int START_BLOCK_LIST_SIZE;
+extern int END_BLOCK_LIST_SIZE;
 extern uint32_t blockNum;
 extern int numBytesSent;
 extern uint32_t* current_address;
 extern uint8_t mem_dump_due;
 extern uint8_t mem_dump_in_prog;
 extern __IO uint32_t NonsecureToSecureTransferCompleteDetected;
+extern __IO uint32_t NonsecureToSecureTransferErrorDetected;
 extern uint32_t iter;
 
 /* USER CODE END EC */
@@ -95,10 +117,10 @@ void NonSecureToSecureTransferComplete(DMA_HandleTypeDef *hdma_memtomem_dma1_cha
 void NonSecureToSecureTransferError(DMA_HandleTypeDef *hdma_memtomem_dma1_channel21);
 int SearchForSig(uint8_t* signal, int sizeOfSig, uint8_t* data, int dataSize);
 void SECURE_SPI_Receive_Classification();
-void SECURE_SPI_Send_Start_Signal();
-void SECURE_SPI_Send_End_Signal();
-void SECURE_SPI_Send_Data();
-void SECURE_SPI_Toggle_Comm(int state);
+//void SECURE_SPI_Send_Start_Signal();
+//void SECURE_SPI_Send_End_Signal();
+//void SECURE_SPI_Send_Data();
+//void SECURE_SPI_Toggle_Comm(int state);
 void SECURE_DMA_Fetch_NonSecure_Mem(uint32_t *nsc_mem_buffer, uint32_t Size);
 void SECURE_Print_Mem_Buffer();
 
@@ -110,6 +132,10 @@ void SECURE_Print_Mem_Buffer();
 #define USART1_TX_GPIO_Port GPIOA
 #define USART1_RX_Pin GPIO_PIN_10
 #define USART1_RX_GPIO_Port GPIOA
+#define WHITE_LED_Pin GPIO_PIN_6
+#define WHITE_LED_GPIO_Port GPIOC
+#define IR_SENSOR_PIN_Pin GPIO_PIN_11
+#define IR_SENSOR_PIN_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
 #define NSEC_MEM_START 0x08040000UL

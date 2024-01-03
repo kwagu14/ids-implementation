@@ -40,10 +40,11 @@ typedef enum
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
 void SECURE_print_Log(char* string);
-void SECURE_print_Num(int num);
+void SECURE_print_Num(char* string, int num);
 void SECURE_Send_Mem_Dump();
 void SECURE_Send_Mem_Block();
 void SECURE_Mem_Forensics();
+void SECURE_Send_Mem();
 
 void SECURE_RegisterCallback(SECURE_CallbackIDTypeDef CallbackId, void *func);
 

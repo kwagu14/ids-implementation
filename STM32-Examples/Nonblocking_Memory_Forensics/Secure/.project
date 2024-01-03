@@ -81,6 +81,16 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Drivers/STM32L5xx_HAL_Driver/Src/stm32l5xx_hal_gtzc.c</locationURI>
 		</link>
 		<link>
+			<name>Drivers/STM32L5xx_HAL_Driver/stm32l5xx_hal_hash.c</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/Drivers/STM32L5xx_HAL_Driver/Src/stm32l5xx_hal_hash.c</locationURI>
+		</link>
+		<link>
+			<name>Drivers/STM32L5xx_HAL_Driver/stm32l5xx_hal_hash_ex.c</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/Drivers/STM32L5xx_HAL_Driver/Src/stm32l5xx_hal_hash_ex.c</locationURI>
+		</link>
+		<link>
 			<name>Drivers/STM32L5xx_HAL_Driver/stm32l5xx_hal_i2c.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Drivers/STM32L5xx_HAL_Driver/Src/stm32l5xx_hal_i2c.c</locationURI>

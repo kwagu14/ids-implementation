@@ -42,6 +42,8 @@
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim4;
 
+UART_HandleTypeDef huart3;
+
 /* USER CODE BEGIN PV */
 static __IO uint32_t transferCompleteDetected; /* Set to 1 if transfer is correctly completed */
 static __IO uint32_t transferErrorDetected; /* Set to 1 if an error transfer is detected */
@@ -51,6 +53,7 @@ static __IO uint32_t transferErrorDetected; /* Set to 1 if an error transfer is 
 static void MX_DMA_Init(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM4_Init(void);
+static void MX_USART3_UART_Init(void);
 /* USER CODE BEGIN PFP */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 //void SystemClock_Config(void);
@@ -68,7 +71,34 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	uint8_t nsec_buf[261] = {
+	                            0x54,0x68,0x65,0x20,0x68,0x61,0x73,0x68,0x20,0x70,
+	                            0x72,0x6f,0x63,0x65,0x73,0x73,0x6f,0x72,0x20,0x69,
+	                            0x73,0x20,0x61,0x20,0x66,0x75,0x6c,0x6c,0x79,0x20,
+	                            0x63,0x6f,0x6d,0x70,0x6c,0x69,0x61,0x6e,0x74,0x20,
+	                            0x69,0x6d,0x70,0x6c,0x65,0x6d,0x65,0x6e,0x74,0x61,
+	                            0x74,0x69,0x6f,0x6e,0x20,0x6f,0x66,0x20,0x74,0x68,
+	                            0x65,0x20,0x73,0x65,0x63,0x75,0x72,0x65,0x20,0x68,
+	                            0x61,0x73,0x68,0x20,0x61,0x6c,0x67,0x6f,0x72,0x69,
+	                            0x74,0x68,0x6d,0x20,0x28,0x53,0x48,0x41,0x2d,0x31,
+	                            0x29,0x2c,0x20,0x74,0x68,0x65,0x20,0x4d,0x44,0x35,
+	                            0x20,0x28,0x6d,0x65,0x73,0x73,0x61,0x67,0x65,0x2d,
+	                            0x64,0x69,0x67,0x65,0x73,0x74,0x20,0x61,0x6c,0x67,
+	                            0x6f,0x72,0x69,0x74,0x68,0x6d,0x20,0x35,0x29,0x20,
+	                            0x68,0x61,0x73,0x68,0x20,0x61,0x6c,0x67,0x6f,0x72,
+	                            0x69,0x74,0x68,0x6d,0x20,0x61,0x6e,0x64,0x20,0x74,
+	                            0x68,0x65,0x20,0x48,0x4d,0x41,0x43,0x20,0x28,0x6b,
+	                            0x65,0x79,0x65,0x64,0x2d,0x68,0x61,0x73,0x68,0x20,
+	                            0x6d,0x65,0x73,0x73,0x61,0x67,0x65,0x20,0x61,0x75,
+	                            0x74,0x68,0x65,0x6e,0x74,0x69,0x63,0x61,0x74,0x69,
+	                            0x6f,0x6e,0x20,0x63,0x6f,0x64,0x65,0x29,0x20,0x61,
+	                            0x6c,0x67,0x6f,0x72,0x69,0x74,0x68,0x6d,0x20,0x73,
+	                            0x75,0x69,0x74,0x61,0x62,0x6c,0x65,0x20,0x66,0x6f,
+	                            0x72,0x20,0x61,0x20,0x76,0x61,0x72,0x69,0x65,0x74,
+	                            0x79,0x20,0x6f,0x66,0x20,0x61,0x70,0x70,0x6c,0x69,
+	                            0x63,0x61,0x74,0x69,0x6f,0x6e,0x73,0x2e,0x2a,0x2a,
+	                            0x2a,0x20,0x53,0x54,0x4d,0x33,0x32,0x20,0x2a,0x2a,
+	                            0x2a};
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -88,21 +118,47 @@ int main(void)
   MX_DMA_Init();
   MX_GPIO_Init();
   MX_TIM4_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-  if(HAL_TIM_Base_Start_IT(&htim4) != HAL_OK){
-	  Error_Handler();
+
+  //check memory one time
+  SECURE_Send_Mem();
+
+  //modify a non-secure buffer
+  for(int i = 0; i < 261; i++){
+	  nsec_buf[i] = 0x0;
   }
+  //check memory again
+  SECURE_Send_Mem();
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-//	  SECURE_print_Log("[From Non-secure]: Hello\n\r");
-//	  SECURE_print_Log("[from non-secure]: hello!\n\r");
-//	  HAL_Delay(1000);
-//	  SECURE_Send_Mem_Dump();
+  while (1){
+//	  SECURE_print_Log("Hello.\n\r");
+//	  current_ir_sensor_val = HAL_GPIO_ReadPin(IR_SENSOR_PIN_GPIO_Port, IR_SENSOR_PIN_Pin);
+//	  //has the state changed?
+//	  if(current_ir_sensor_val != previous_ir_sensor_val){
+//		  SECURE_print_Log("State changed.\n\r");
+//		  if(current_ir_sensor_val == GPIO_PIN_RESET){
+//			  SECURE_print_Log("ENTITY APPROACHING\n\r");
+//			  //let the server know; send this to esp32
+//			  HAL_UART_Transmit(&huart3, (uint8_t*) ENTITY_APPROACHING, (uint16_t) MAX_NIC_MESSAGE_LEN, 0xFFFF);
+//		  }else{
+//			  SECURE_print_Log("ENTITY DEPARTED\n\r");
+//			  //let the server know
+//			  HAL_UART_Transmit(&huart3, (uint8_t*) ENTITY_DEPARTING, (uint16_t) MAX_NIC_MESSAGE_LEN, 0xFFFF);
+//		  }
+//		  HAL_Delay(1);
+//	  }
+//	  previous_ir_sensor_val = current_ir_sensor_val;
+//	  if(current_ir_sensor_val == 0){
+//		  HAL_GPIO_WritePin(WHITE_LED_GPIO_Port, WHITE_LED_Pin, GPIO_PIN_SET);
+//	  }else{
+//		  HAL_GPIO_WritePin(WHITE_LED_GPIO_Port, WHITE_LED_Pin, GPIO_PIN_RESET);
+//	  }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -129,7 +185,7 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 21999;
+  htim4.Init.Prescaler = 10999;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim4.Init.Period = 10000;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -156,6 +212,54 @@ static void MX_TIM4_Init(void)
 }
 
 /**
+  * @brief USART3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART3_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART3_Init 0 */
+
+  /* USER CODE END USART3_Init 0 */
+
+  /* USER CODE BEGIN USART3_Init 1 */
+
+  /* USER CODE END USART3_Init 1 */
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 115200;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_ODD;
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart3.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart3.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart3.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart3, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart3, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&huart3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART3_Init 2 */
+
+  /* USER CODE END USART3_Init 2 */
+
+}
+
+/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -174,11 +278,29 @@ static void MX_DMA_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 /* USER CODE BEGIN MX_GPIO_Init_1 */
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(WHITE_LED_GPIO_Port, WHITE_LED_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : WHITE_LED_Pin */
+  GPIO_InitStruct.Pin = WHITE_LED_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(WHITE_LED_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : IR_SENSOR_PIN_Pin */
+  GPIO_InitStruct.Pin = IR_SENSOR_PIN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(IR_SENSOR_PIN_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */

@@ -57,9 +57,9 @@
 /* External variables --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_spi3_rx;
 extern DMA_HandleTypeDef hdma_spi3_tx;
-extern DMA_HandleTypeDef hdma_memtomem_dma1_channel1;
 /* USER CODE BEGIN EV */
-
+extern DMA_HandleTypeDef hdma_memtomem_dma1_channel1;
+extern DMA_HandleTypeDef hdma_memtomem_dma1_channel4;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -250,6 +250,17 @@ void DMA1_Channel1_IRQHandler(void)
 
   /* USER CODE END DMA1_Channel2_IRQn 0 */
 	HAL_DMA_IRQHandler(&hdma_memtomem_dma1_channel1);
+  /* USER CODE BEGIN DMA1_Channel2_IRQn 1 */
+
+  /* USER CODE END DMA1_Channel2_IRQn 1 */
+}
+
+void DMA1_Channel4_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Channel2_IRQn 0 */
+
+  /* USER CODE END DMA1_Channel2_IRQn 0 */
+	HAL_DMA_IRQHandler(&hdma_memtomem_dma1_channel4);
   /* USER CODE BEGIN DMA1_Channel2_IRQn 1 */
 
   /* USER CODE END DMA1_Channel2_IRQn 1 */

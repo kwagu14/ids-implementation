@@ -18,7 +18,7 @@ bool transmissionEnded = false;
 //Port #-- must match with python server
 const uint16_t port = 1337; 
 //IP Address of my server
-const char * host = "172.16.14.91"; 
+const char * host = "172.16.14.97"; 
 // Use WiFiClient class to create TCP connections
 WiFiClient client;
 WiFiMulti wifiMulti;
@@ -26,8 +26,6 @@ WiFiMulti wifiMulti;
 //signals to help with parsing the data stream received through SPI & sent through TCP
 String endTransmissionSignal = "<END_TRANSMISSION>";
 String startTransmissionSignal = "<START_TRANSMISSION>";
-char* rawStartTransmission = "<START_TRANSMISSION>";
-char* rawEndTransmission = "<END_TRANSMISSION>----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------";
 char* startClassification = "<START_CLASSIFICATION>";
 char* endClassification = "<END_CLASSIFICATION>";
 

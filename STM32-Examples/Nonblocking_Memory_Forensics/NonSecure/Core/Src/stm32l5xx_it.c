@@ -149,9 +149,13 @@ void TIM4_IRQHandler(void)
 //	SECURE_Send_Mem_Block();
   /* USER CODE END TIM4_IRQn 0 */
   HAL_TIM_IRQHandler(&htim4);
-  /* USER CODE BEGIN TIM4_IRQn 1 */
-  SECURE_Send_Mem_Block();
-  return;
+//  /* USER CODE BEGIN TIM4_IRQn 1 */
+//  SECURE_print_Log("Sending memory Block\n\r");
+//  long start = HAL_GetTick();
+//  SECURE_Send_Mem_Block();
+//  long end = HAL_GetTick();
+//  SECURE_print_Num("Total time taken: ", end-start);
+//  return;
   /* USER CODE END TIM4_IRQn 1 */
 }
 

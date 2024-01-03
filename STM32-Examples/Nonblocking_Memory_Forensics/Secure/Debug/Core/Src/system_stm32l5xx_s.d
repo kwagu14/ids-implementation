@@ -23,6 +23,8 @@ Core/Src/system_stm32l5xx_s.o: ../Core/Src/system_stm32l5xx_s.c \
  ../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_flash_ex.h \
  ../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_flash_ramfunc.h \
  ../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_gtzc.h \
+ ../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_hash.h \
+ ../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_hash_ex.h \
  ../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_i2c.h \
  ../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_i2c_ex.h \
  ../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_icache.h \
@@ -59,6 +61,8 @@ Core/Src/system_stm32l5xx_s.o: ../Core/Src/system_stm32l5xx_s.c \
 ../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_flash_ex.h:
 ../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_flash_ramfunc.h:
 ../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_gtzc.h:
+../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_hash.h:
+../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_hash_ex.h:
 ../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_i2c.h:
 ../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_i2c_ex.h:
 ../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_icache.h:
