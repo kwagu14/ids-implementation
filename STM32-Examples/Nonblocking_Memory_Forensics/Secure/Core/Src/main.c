@@ -807,63 +807,63 @@ int SearchForSig(uint8_t* signal, int sizeOfSig, uint8_t* data, int dataSize)
 
 //this function checks for & receives a classification from a stream of SPI data coming in through MISO
 //It must be called in memory forensics after sending a full memory dump to the server
-void SECURE_SPI_Receive_Classification(){
-
-	int containsStartClassification;
-	int containsEndClassification;
-	//perform a new rx operation
-	wTransferState = TRANSFER_WAIT;
-	if (HAL_SPI_Receive_DMA(&hspi3, (uint8_t *)aRxBuffer, BUFFER_SIZE) != HAL_OK)
-	 {
-		 /* Transfer error in transmission process */
-		 printf("There was an error in starting up RX.\n\r");
-		 Error_Handler();
-	 }
-
-	 /*##-2- Wait for the end of the transfer ###################################*/
-	 while (wTransferState == TRANSFER_WAIT)
-	 {
-	 }
-
-	//check SPI transfer state
-	if(wTransferState == TRANSFER_COMPLETE){
-
-		//print the buffer received.
-		printf("Buffer received from SPI: \n\r");
-		for(int i = 0; i < BUFFER_SIZE; i++){
-			printf("%d\t", aRxBuffer[i]);
-		}
-		printf("\n\r");
-
-		//if the transfer completed, look for the start and end signals in the SPI rx buffer
-		containsStartClassification = SearchForSig(START_CLASSIFICATION_SIG, START_CLASSIFICATION_SIZE, aRxBuffer, BUFFER_SIZE);
-		containsEndClassification = SearchForSig(END_CLASSIFICATION_SIG, END_CLASSIFICATION_SIZE, aRxBuffer, BUFFER_SIZE);
-		if(containsStartClassification >= 0 && containsEndClassification >= 0){
-			//The start and end signals were found; make sure there's only one element between them
-			if(containsStartClassification == containsEndClassification - START_CLASSIFICATION_SIZE - 1){
-				//try to extract the classification
-				printf("Classification found. Extracting...\n\r");
-				int classificationInd = containsEndClassification - 1;
-				uint8_t classification = aRxBuffer[classificationInd];
-				printf("Classification: %c\n\r", classification);
-				if(classification == '1'){
-					printf("Memory was found to be benign.\n\r");
-				}else if(classification == '0'){
-					printf("Memory was found to be malicious.\n\r");
-				}else{
-					printf("ERROR. A classification other than 1 or 0 found!");
-				}
-			}else{
-				printf("Error: the SPI classification stream is incorrectly formatted.\n\r");
-				printf("Start classification: %d, End classification: %d\n\r", containsStartClassification, containsEndClassification);
-			}
-		}
-	}else{
-		//if transfer didn't complete
-		Error_Handler();
-	}
-
-}
+//void SECURE_SPI_Receive_Classification(){
+//
+//	int containsStartClassification;
+//	int containsEndClassification;
+//	//perform a new rx operation
+//	wTransferState = TRANSFER_WAIT;
+//	if (HAL_SPI_Receive_DMA(&hspi3, (uint8_t *)aRxBuffer, BUFFER_SIZE) != HAL_OK)
+//	 {
+//		 /* Transfer error in transmission process */
+//		 printf("There was an error in starting up RX.\n\r");
+//		 Error_Handler();
+//	 }
+//
+//	 /*##-2- Wait for the end of the transfer ###################################*/
+//	 while (wTransferState == TRANSFER_WAIT)
+//	 {
+//	 }
+//
+//	//check SPI transfer state
+//	if(wTransferState == TRANSFER_COMPLETE){
+//
+//		//print the buffer received.
+//		printf("Buffer received from SPI: \n\r");
+//		for(int i = 0; i < BUFFER_SIZE; i++){
+//			printf("%d\t", aRxBuffer[i]);
+//		}
+//		printf("\n\r");
+//
+//		//if the transfer completed, look for the start and end signals in the SPI rx buffer
+//		containsStartClassification = SearchForSig(START_CLASSIFICATION_SIG, START_CLASSIFICATION_SIZE, aRxBuffer, BUFFER_SIZE);
+//		containsEndClassification = SearchForSig(END_CLASSIFICATION_SIG, END_CLASSIFICATION_SIZE, aRxBuffer, BUFFER_SIZE);
+//		if(containsStartClassification >= 0 && containsEndClassification >= 0){
+//			//The start and end signals were found; make sure there's only one element between them
+//			if(containsStartClassification == containsEndClassification - START_CLASSIFICATION_SIZE - 1){
+//				//try to extract the classification
+//				printf("Classification found. Extracting...\n\r");
+//				int classificationInd = containsEndClassification - 1;
+//				uint8_t classification = aRxBuffer[classificationInd];
+//				printf("Classification: %c\n\r", classification);
+//				if(classification == '1'){
+//					printf("Memory was found to be benign.\n\r");
+//				}else if(classification == '0'){
+//					printf("Memory was found to be malicious.\n\r");
+//				}else{
+//					printf("ERROR. A classification other than 1 or 0 found!");
+//				}
+//			}else{
+//				printf("Error: the SPI classification stream is incorrectly formatted.\n\r");
+//				printf("Start classification: %d, End classification: %d\n\r", containsStartClassification, containsEndClassification);
+//			}
+//		}
+//	}else{
+//		//if transfer didn't complete
+//		Error_Handler();
+//	}
+//
+//}
 
 
 //
