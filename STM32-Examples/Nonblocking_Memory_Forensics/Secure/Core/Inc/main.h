@@ -116,7 +116,7 @@ void NonSecureSecureTransferCompleteCallback(DMA_HandleTypeDef *hdma_memtomem_dm
 void NonSecureToSecureTransferComplete(DMA_HandleTypeDef *hdma_memtomem_dma1_channel1);
 void NonSecureToSecureTransferError(DMA_HandleTypeDef *hdma_memtomem_dma1_channel21);
 int SearchForSig(uint8_t* signal, int sizeOfSig, uint8_t* data, int dataSize);
-void SECURE_SPI_Receive_Classification();
+//void SECURE_SPI_Receive_Classification();
 //void SECURE_SPI_Send_Start_Signal();
 //void SECURE_SPI_Send_End_Signal();
 //void SECURE_SPI_Send_Data();

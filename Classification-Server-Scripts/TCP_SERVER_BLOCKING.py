@@ -23,6 +23,7 @@ import os
 from _thread import *
 import signal
 import sys
+import binascii
 import time
 import struct
 #this will "import" the ML python file into the code
@@ -30,33 +31,50 @@ import struct
 
 
 #This is the server IP address; we'll use our public address
-SERVER_HOST = "192.168.0.94"
+SERVER_HOST = "172.16.14.106"
 #The port that clients have to enter 
 SERVER_PORT = 1337
 #block size
 BUFFER_SIZE = 1024
 #separator used for ASCII messages
 SEPARATOR = "<SEPARATOR>"
-#signals; will get padded to block size
+#signals
 START_TRANSMISSION = "<START_TRANSMISSION>"
 END_TRANSMISSION = "<END_TRANSMISSION>"
 START_CLASSIFICATION = "<START_CLASSIFICATION>"
 END_CLASSIFICATION = "<END_CLASSIFICATION>"
-#expecting 256KB of data (all of flash bank 2)
+START_SIZE = "<START_SIZE>"
+END_SIZE = "<END_SIZE>"
+START_BLOCK_NUMS = "<START_BLOCK_NUMS>"
+END_BLOCK_NUMS = "<END_BLOCK_NUMS>"
+START_BLOCK_LIST_SIZE = "<START_BLOCK_LIST_SIZE>"
+END_BLOCK_LIST_SIZE = "<END_BLOCK_LIST_SIZE>"
+#signal sizes
+startClassificationLen = 22
+endClassificationLen = 20
+endTransmissionLen = 18
+startTransmissionLen = 20
+startSizeLen = 12
+endSizeLen = 10 
+startBlockNumsLen = 18
+endBlockNumsLen = 16
+startBlockListSizeLen = 23
+endBlockListSizeLen = 21
+
+#expecting 256KB of data (all of flash bank 3)
 EXPECTED_MEM_SIZE = 262144 
 
 
-#TODO: need to get rid of block signals 
-#since I'm still sending the signals padded to 1024 bytes, that doesn't have to change for now
 
 
-
-#parses TCP stream sent by the MCU and saves the memory in a binary file
+#TODO: modify this code so that it works even without padded signals
+#This is code to receive a full memory dump from the MCU
+#The TCP stream is in the form: <START_TRANSMISSION>[memory block 1][memory block 2] ... [memory block 256]<END_TRANSMISSION>
 def receiveMemDump(client_socket):
+    #This is the name given to the memory sample
     path = "sample_dump.bin"
-    blockNum = 0
     numBytesReceived = 0
-    #create a binary file (if doesn't exist); overwrite if it does exist
+    #open for writing in binary mode; create if doesn't exist
     f = open(path, "wb")
     
     #loop that searches for the start of a memory transmission
@@ -152,6 +170,105 @@ def receiveMemDump(client_socket):
 
 
 
+#unlike the previous function, this function only receives blocks that have been modified and appends it to the memory dump
+def recvModifiedMem(client_socket):
+    #Before calling this function, the server should be populated with an initial dump which can be obtained through receiveMemDump()
+    path = "sample_dump.bin"
+    numBytesReceived = 0
+    #open for writing in binary mode; create if doesn't exist
+    f = open(path, "r+b")
+
+    #receive all data
+    bytes_received = receiveAllBytes(client_socket)
+
+    #search for the number of blocks in the data & extract
+    dataInd = bytes_received.find(START_SIZE.encode())
+    dataInd += startSizeLen
+    # numBlocks = (bytes_received[dataInd] << 8) + (bytes_received[dataInd+1])
+    numBlocks = struct.unpack_from(">H", bytes_received, dataInd)
+    numBlocks = numBlocks[0]
+
+    if(numBlocks < 256):
+        print("Receiving modified blocks...")
+        #search for the size of the block list
+        dataInd = bytes_received.find(START_BLOCK_LIST_SIZE.encode())
+        dataInd += startBlockListSizeLen
+        block_list_size_bytes = bytes_received[dataInd:dataInd+2]
+        blockListSize = struct.unpack(">H", block_list_size_bytes)
+        blockListSize = blockListSize[0]
+
+        #search for the block list in the data & extract
+        dataInd = bytes_received.find(START_BLOCK_NUMS.encode())
+        dataInd += startBlockNumsLen
+        blockListTuple = struct.unpack_from("{length}c".format(length=blockListSize), bytes_received, dataInd)
+        blockList = ""
+        for x in blockListTuple:
+            blockList += x.decode()
+        
+        blockNumStrArr = blockList.split(",")
+        blockNumArr = [int(numeric_string) for numeric_string in blockNumStrArr]
+
+        #search for start transmission
+        dataInd = bytes_received.find(START_TRANSMISSION.encode())
+        memInd = dataInd + startTransmissionLen
+
+        for i in range(numBlocks):
+            #get the correct memory block
+            currMemBlock = bytes_received[memInd:memInd+1024]
+            fileOffset = blockNumArr[i]*1024
+            #append block to that positon in the file
+            f.seek(fileOffset)
+            f.write(currMemBlock)
+            memInd += 1024
+    else: 
+        print("Receiving full memory dump...")
+        #search for start transmission
+        f.seek(0)
+        dataInd = bytes_received.find(START_TRANSMISSION.encode())
+        memInd = dataInd + startTransmissionLen
+
+        for i in range(numBlocks):
+            #get the correct memory block
+            currMemBlock = bytes_received[memInd:memInd+1024]
+            #append block to that positon in the file
+            f.write(currMemBlock)
+            memInd += 1024
+
+    #exit
+    f.close()
+
+    #at this point, we have the full memory dump; get classification here: 
+    classification = 1
+    #now send to client
+    response = START_CLASSIFICATION + str(classification) + END_CLASSIFICATION
+    print("Sending classification to server.")
+    client_socket.send(response.encode())
+    print("Finished.")
+    client_socket.close()
+    return
+
+
+
+#receive all bytes that a client sends 
+def receiveAllBytes(client_socket):
+    output = b''
+    print("Receiving data...")
+    #search for the number of data blocks
+    bytes_received = client_socket.recv(BUFFER_SIZE)
+    output += bytes_received
+    while True:
+        bytes_received = client_socket.recv(BUFFER_SIZE)
+        output += bytes_received
+        #once client disconnects, this condition will become true
+        if not bytes_received: 
+            print("Client closed connection.")
+            return output
+        if(output.find(END_TRANSMISSION.encode()) >= 0):
+            print("Successfully received all memory.")
+            return output
+
+
+
 #a function to receive exactly n bytes of data from the client
 def recvall(sock, n):
     data = bytearray()
@@ -161,6 +278,7 @@ def recvall(sock, n):
             return None
         data.extend(packet)
     return data
+
 
 
 #a function to pad the signals to the correct length
@@ -213,8 +331,7 @@ def sig_handler(sig, frame):
     s.close()
     sys.exit(0)
     
-    
-    
+
 #install the signal handler
 signal.signal(signal.SIGINT, sig_handler)
 
@@ -225,10 +342,6 @@ s.bind((SERVER_HOST, SERVER_PORT))
 #start listening for clients
 s.listen(10)
 print(f"[FROM FILESERVER]: Listening as {SERVER_HOST}:{SERVER_PORT}")
-
-#pad the signals
-START_TRANSMISSION = padString(START_TRANSMISSION)
-END_TRANSMISSION = padString(END_TRANSMISSION)
 
 #create a separate thread for each connection
 while(True):
@@ -246,6 +359,6 @@ while(True):
     # #Once gotten, use that socket to handle the request
 
     #start receiving memdumps for each client that connects
-    start_new_thread(receiveMemDump, (client_socket, ))
+    start_new_thread(recvModifiedMem, (client_socket, ))
     
     

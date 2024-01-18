@@ -45,6 +45,8 @@ void SECURE_Send_Mem_Dump();
 void SECURE_Send_Mem_Block();
 void SECURE_Mem_Forensics();
 void SECURE_Send_Mem();
+void SECURE_Send_Modified_Mem();
+int SECURE_SPI_Receive_Classification();
 
 void SECURE_RegisterCallback(SECURE_CallbackIDTypeDef CallbackId, void *func);
 

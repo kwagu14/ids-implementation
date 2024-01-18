@@ -122,14 +122,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   //check memory one time
-  SECURE_Send_Mem();
+  SECURE_Send_Modified_Mem();
 
-  //modify a non-secure buffer
-  for(int i = 0; i < 261; i++){
-	  nsec_buf[i] = 0x0;
-  }
-  //check memory again
-  SECURE_Send_Mem();
 
   /* USER CODE END 2 */
 
