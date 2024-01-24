@@ -3,7 +3,7 @@
 # Toolchain: GNU Tools for STM32 (10.3-2021.10)
 ################################################################################
 
-USER_OBJS := C:/Users/karle/STM32CubeIDE/workspace_1.12.1/SPI_based_memory_acquisition/Secure/Debug/secure_nsclib.o
+USER_OBJS := C:/Users/karle/githubRepos/ids-implementation/STM32-Examples/SPI_based_memory_acquisition/Secure/Debug/secure_nsclib.o
 
 LIBS :=
 

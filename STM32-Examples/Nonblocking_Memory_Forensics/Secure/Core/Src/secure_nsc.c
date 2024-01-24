@@ -192,6 +192,7 @@ CMSE_NS_ENTRY void SECURE_Send_Modified_Mem(){
 		  blockNum ++;
 		  current_address += BUFFER_SIZE/4;
 	  }
+
 	/******************************************* DATA MANIPULATION *********************************************************/
 	printf("%d blocks have changed\n\r", numModified);
 	//build list of modified block numbers separated by commas. Encoded as a string

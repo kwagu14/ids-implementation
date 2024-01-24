@@ -60,8 +60,8 @@ all: main-build
 main-build: SPI_based_memory_acquisition_Secure.elf secondary-outputs
 
 # Tool invocations
-SPI_based_memory_acquisition_Secure.elf SPI_based_memory_acquisition_Secure.map: $(OBJS) $(USER_OBJS) C:\Users\karle\STM32CubeIDE\workspace_1.12.1\SPI_based_memory_acquisition\Secure\STM32L562QEIXQ_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "SPI_based_memory_acquisition_Secure.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m33 -T"C:\Users\karle\STM32CubeIDE\workspace_1.12.1\SPI_based_memory_acquisition\Secure\STM32L562QEIXQ_FLASH.ld" --specs=nosys.specs -Wl,-Map="SPI_based_memory_acquisition_Secure.map" -Wl,--gc-sections -static -Wl,--cmse-implib -Wl,--out-implib=./secure_nsclib.o --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+SPI_based_memory_acquisition_Secure.elf SPI_based_memory_acquisition_Secure.map: $(OBJS) $(USER_OBJS) C:\Users\karle\githubRepos\ids-implementation\STM32-Examples\SPI_based_memory_acquisition\Secure\STM32L562QEIXQ_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "SPI_based_memory_acquisition_Secure.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m33 -T"C:\Users\karle\githubRepos\ids-implementation\STM32-Examples\SPI_based_memory_acquisition\Secure\STM32L562QEIXQ_FLASH.ld" --specs=nosys.specs -Wl,-Map="SPI_based_memory_acquisition_Secure.map" -Wl,--gc-sections -static -Wl,--cmse-implib -Wl,--out-implib=./secure_nsclib.o --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

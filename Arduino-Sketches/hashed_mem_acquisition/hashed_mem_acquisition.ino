@@ -173,6 +173,11 @@ void loop() {
   data_blocks_bytes[1] = spi_slave_message_buf[dataInd+1];
   uint16_t dataBlocks = (spi_slave_message_buf[dataInd] << 8) + (spi_slave_message_buf[dataInd+1]);
   Serial.printf("The value of dataBlocks is: %d\n", dataBlocks);
+  if(dataBlocks == 0){
+    Serial.printf("No memory blocks were found to be modified.\n");
+    delay(5000);
+    return;
+  }
   int maxMemSize = 8*1024; //(per transfer)
   slave.pop();
 

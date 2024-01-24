@@ -60,8 +60,8 @@ all: main-build
 main-build: Nonblocking_Memory_Forensics_Secure.elf secondary-outputs
 
 # Tool invocations
-Nonblocking_Memory_Forensics_Secure.elf Nonblocking_Memory_Forensics_Secure.map: $(OBJS) $(USER_OBJS) C:\Users\karle\STM32CubeIDE\workspace_1.12.1\Nonblocking_Memory_Forensics\Secure\STM32L562QEIXQ_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Nonblocking_Memory_Forensics_Secure.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m33 -T"C:\Users\karle\STM32CubeIDE\workspace_1.12.1\Nonblocking_Memory_Forensics\Secure\STM32L562QEIXQ_FLASH.ld" --specs=nosys.specs -Wl,-Map="Nonblocking_Memory_Forensics_Secure.map" -Wl,--gc-sections -static -Wl,--cmse-implib -Wl,--out-implib=./secure_nsclib.o --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Nonblocking_Memory_Forensics_Secure.elf Nonblocking_Memory_Forensics_Secure.map: $(OBJS) $(USER_OBJS) C:\Users\karle\githubRepos\ids-implementation\STM32-Examples\Nonblocking_Memory_Forensics\Secure\STM32L562QEIXQ_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Nonblocking_Memory_Forensics_Secure.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m33 -T"C:\Users\karle\githubRepos\ids-implementation\STM32-Examples\Nonblocking_Memory_Forensics\Secure\STM32L562QEIXQ_FLASH.ld" --specs=nosys.specs -Wl,-Map="Nonblocking_Memory_Forensics_Secure.map" -Wl,--gc-sections -static -Wl,--cmse-implib -Wl,--out-implib=./secure_nsclib.o --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

@@ -1,5 +1,5 @@
 Drivers/STM32L5xx_HAL_Driver/stm32l5xx_hal_cortex.o: \
- C:/Users/karle/STM32CubeIDE/workspace_1.12.1/Nonblocking_Memory_Forensics/Drivers/STM32L5xx_HAL_Driver/Src/stm32l5xx_hal_cortex.c \
+ C:/Users/karle/githubRepos/ids-implementation/STM32-Examples/Nonblocking_Memory_Forensics/Drivers/STM32L5xx_HAL_Driver/Src/stm32l5xx_hal_cortex.c \
  ../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal.h \
  ../Core/Inc/stm32l5xx_hal_conf.h \
  ../../Drivers/STM32L5xx_HAL_Driver/Inc/stm32l5xx_hal_rcc.h \

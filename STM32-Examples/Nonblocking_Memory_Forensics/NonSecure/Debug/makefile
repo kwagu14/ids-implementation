@@ -60,11 +60,11 @@ all: main-build
 main-build: Nonblocking_Memory_Forensics_NonSecure.elf secondary-outputs
 
 dependents:
-	-cd C:/Users/karle/STM32CubeIDE/workspace_1.12.1/Nonblocking_Memory_Forensics/Secure/Debug && $(MAKE) clean all
+	-cd C:/Users/karle/githubRepos/ids-implementation/STM32-Examples/Nonblocking_Memory_Forensics/Secure/Debug && $(MAKE) clean all
 
 # Tool invocations
-Nonblocking_Memory_Forensics_NonSecure.elf Nonblocking_Memory_Forensics_NonSecure.map: $(OBJS) $(USER_OBJS) C:/Users/karle/STM32CubeIDE/workspace_1.12.1/Nonblocking_Memory_Forensics/Secure/Debug/Nonblocking_Memory_Forensics_Secure.elf C:\Users\karle\STM32CubeIDE\workspace_1.12.1\Nonblocking_Memory_Forensics\NonSecure\STM32L562QEIXQ_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Nonblocking_Memory_Forensics_NonSecure.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m33 -T"C:\Users\karle\STM32CubeIDE\workspace_1.12.1\Nonblocking_Memory_Forensics\NonSecure\STM32L562QEIXQ_FLASH.ld" --specs=nosys.specs -Wl,-Map="Nonblocking_Memory_Forensics_NonSecure.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Nonblocking_Memory_Forensics_NonSecure.elf Nonblocking_Memory_Forensics_NonSecure.map: $(OBJS) $(USER_OBJS) C:/Users/karle/githubRepos/ids-implementation/STM32-Examples/Nonblocking_Memory_Forensics/Secure/Debug/Nonblocking_Memory_Forensics_Secure.elf C:\Users\karle\githubRepos\ids-implementation\STM32-Examples\Nonblocking_Memory_Forensics\NonSecure\STM32L562QEIXQ_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Nonblocking_Memory_Forensics_NonSecure.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m33 -T"C:\Users\karle\githubRepos\ids-implementation\STM32-Examples\Nonblocking_Memory_Forensics\NonSecure\STM32L562QEIXQ_FLASH.ld" --specs=nosys.specs -Wl,-Map="Nonblocking_Memory_Forensics_NonSecure.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -93,6 +93,6 @@ warn-no-linker-script-specified:
 	@echo 'Warning: No linker script specified. Check the linker settings in the build configuration.'
 
 .PHONY: all clean dependents main-build fail-specified-linker-script-missing warn-no-linker-script-specified
-C:/Users/karle/STM32CubeIDE/workspace_1.12.1/Nonblocking_Memory_Forensics/Secure/Debug/Nonblocking_Memory_Forensics_Secure.elf:
+C:/Users/karle/githubRepos/ids-implementation/STM32-Examples/Nonblocking_Memory_Forensics/Secure/Debug/Nonblocking_Memory_Forensics_Secure.elf:
 
 -include ../makefile.targets
