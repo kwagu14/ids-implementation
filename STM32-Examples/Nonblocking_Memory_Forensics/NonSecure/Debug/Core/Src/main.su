@@ -1,7 +1,7 @@
 ../Core/Src/main.c:71:5:main	272	static
-../Core/Src/main.c:168:13:MX_TIM4_Init	40	static
-../Core/Src/main.c:213:13:MX_USART3_UART_Init	8	static
-../Core/Src/main.c:259:13:MX_DMA_Init	16	static
-../Core/Src/main.c:273:13:MX_GPIO_Init	40	static
-../Core/Src/main.c:308:6:SystemClock_Config	104	static
-../Core/Src/main.c:365:6:Error_Handler	4	static,ignoring_inline_asm
+../Core/Src/main.c:170:13:MX_TIM4_Init	40	static
+../Core/Src/main.c:215:13:MX_USART3_UART_Init	8	static
+../Core/Src/main.c:261:13:MX_DMA_Init	16	static
+../Core/Src/main.c:275:13:MX_GPIO_Init	40	static
+../Core/Src/main.c:310:6:SystemClock_Config	104	static
+../Core/Src/main.c:367:6:Error_Handler	4	static,ignoring_inline_asm

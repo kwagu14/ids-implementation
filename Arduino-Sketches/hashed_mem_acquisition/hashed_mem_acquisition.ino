@@ -67,7 +67,7 @@ bool transmissionEnded = false;
 //Port #-- must match with python server
 const uint16_t port = 1337; 
 //IP Address of my server
-const char * host = "172.16.14.106"; 
+const char * host = "172.16.14.82"; 
 // Use WiFiClient class to create TCP connections
 WiFiClient client;
 WiFiMulti wifiMulti;
@@ -162,10 +162,18 @@ void setup() {
 
 void loop() {
 
+  //reset global buffers
+  clearBuf(spi_slave_classification_buf, BLOCK_SIZE);
+  clearBuf(spi_slave_mem_block_buf, MAX_BLOCKS*BLOCK_SIZE+max_message_size);
+  clearBuf(spi_slave_message_buf, max_message_size);
+  clearBuf(numBlocksToReceive, 1);
+  clearBuf(spi_slave_block_list_buf, max_block_num_list);
+  clearBuf(spi_slave_rx_buf, BLOCK_SIZE);
+
   //holds the raw bytes (big endian) of the # of data blocks and the # of characters in block list, respectively
   uint8_t data_blocks_bytes[2];
   uint8_t block_num_list_size_bytes[2];
-  uint16_t blockNumListSize;
+  uint16_t blockNumListSize = 0;
 
   //Step 1: search for the number of blocks
   int dataInd = searchForDataInStream(startSize, startSizeLen, endSize, endSizeLen, 1, spi_slave_message_buf, max_message_size);
@@ -173,6 +181,7 @@ void loop() {
   data_blocks_bytes[1] = spi_slave_message_buf[dataInd+1];
   uint16_t dataBlocks = (spi_slave_message_buf[dataInd] << 8) + (spi_slave_message_buf[dataInd+1]);
   Serial.printf("The value of dataBlocks is: %d\n", dataBlocks);
+  //if no data blocks received, start over
   if(dataBlocks == 0){
     Serial.printf("No memory blocks were found to be modified.\n");
     delay(5000);
@@ -231,22 +240,24 @@ void loop() {
   int usedMemSize;
   //accept memory blocks and send until there are no more
   int iter = 0;
+  int offset = 0;
   while(dataBlocks > 0){
     Serial.printf("memory blocks remaining: %d\n\r", dataBlocks);
     calculatedMemSize = dataBlocks*1024;
     Serial.printf("calculated mem size is %d\n", calculatedMemSize);
     usedMemSize = (dataBlocks > 8) ? maxMemSize : dataBlocks*1024;
-    Serial.printf("used mem size is %d\n", usedMemSize);
     Serial.printf("Grabbing transfer %d.\n", iter);
 
-    dataInd = searchForDataInStream(startTransmission, startTransmissionLen, endTransmission, endTransmissionLen, usedMemSize, spi_slave_mem_block_buf, MAX_BLOCKS*BLOCK_SIZE+max_message_size);
-    //print memory
-    //printMemReceived(&spi_slave_mem_block_buf[dataInd]);
+    dataInd = searchForDataInStream(startTransmission, startTransmissionLen, endTransmission, endTransmissionLen, usedMemSize, spi_slave_mem_block_buf, (MAX_BLOCKS*BLOCK_SIZE+max_message_size));
+    Serial.printf("<start_transmission> found at %d\n", dataInd);
+    //print memory; (note: very slow & can cause data loss if delay isnt increased on STM32) 
+    // printMemReceived(&spi_slave_mem_block_buf[dataInd]);
     //send memory
     sendTCPData(client, (uint8_t *)&spi_slave_mem_block_buf[dataInd], usedMemSize);
     dataBlocks -= (dataBlocks >= 8 ? 8 : dataBlocks); //since unisgned: need this to prevent underflow
     Serial.printf("data blocks decremented to: %d\n", dataBlocks);
     slave.pop();
+    offset = dataInd+1;
     iter++;
   }
   Serial.printf("All blocks sent.\n");
@@ -263,6 +274,13 @@ void loop() {
   deinitCommunication();
 
 
+}
+
+
+void clearBuf(uint8_t *buf, int size){
+  for(int i = 0; i < size; i++){
+    buf[i] = 0;
+  }
 }
 
 
@@ -430,6 +448,8 @@ int searchForDataInStream(char* sig1, int s1, char* sig2, int s2, int dataSize, 
   // Serial.printf("Looking for %s...\n", sig1);
   bool found = false;
   int dataInd = 0;
+
+  clearBuf(buf, bufSize);
 
   while(true){
     if (slave.remained() == 0) {

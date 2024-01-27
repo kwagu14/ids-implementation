@@ -185,7 +185,7 @@ int main(void)
   MX_ICACHE_Init();
   MX_SPI3_Init();
   MX_USART1_UART_Init();
-//  MX_IWDG_Init();
+//MX_IWDG_Init();
   MX_HASH_Init();
 
   /* USER CODE BEGIN 2 */

@@ -106,7 +106,7 @@ CMSE_NS_ENTRY void SECURE_print_Num(char* string, int num){
 CMSE_NS_ENTRY void SECURE_Send_Mem(){
 
 	int blocksToSend = 256;
-	uint32_t* current_addr = (uint32_t*) NSEC_MEM_START;
+	uint32_t* current_addr;
 	uint8_t blocks_to_send_bytes[2];
 	blocks_to_send_bytes[0] = blocksToSend >> 8;
 	blocks_to_send_bytes[1] = blocksToSend & 255;
@@ -131,9 +131,14 @@ CMSE_NS_ENTRY void SECURE_Send_Mem(){
 		//send an 8KB chunk
 		SECURE_SPI_Toggle_Comm(0);
 		SECURE_SPI_Send_Signal(START_TRANSMISSION_SIG, START_TRANS_SIZE);
+		//start at new 8KB boundary
+		current_addr = (uint32_t*)(NSEC_MEM_START + i*8192);
 		for(int i = 0; i < 8; i++){
 			//send through SPI
+			printf("------------------------------------------------------------------------------------\n\r");
 			printf("sending data at address %p\n\r", current_addr);
+			SECURE_Print_Mem_Buffer(SEC_Mem_Buffer, 1024);
+			printf("------------------------------------------------------------------------------------\n\r");
 			SECURE_SPI_Send_Data_Block(current_addr);
 			//calculate the address of the next block to send
 			current_addr += BUFFER_SIZE/4;
@@ -143,7 +148,7 @@ CMSE_NS_ENTRY void SECURE_Send_Mem(){
 		//toggle spi communication
 		SECURE_SPI_Toggle_Comm(1);
 		//decrement num modified blocks
-		HAL_Delay(8000);
+		HAL_Delay(10000);
 	}
 
 }
@@ -154,9 +159,15 @@ CMSE_NS_ENTRY void SECURE_Send_Mem(){
 CMSE_NS_ENTRY void SECURE_Send_Modified_Mem(){
 
 	int modifiedBlockNums[256];
+	uint16_t numModified = 0;
+
 	//reset watchdog
 	//HAL_IWDG_Refresh(&hiwdg);
-	uint16_t numModified = 0;
+
+	//used for testing
+//	uint16_t numModified = 7;
+//	int modifiedBlockNums[256] = {0, 1, 9, 15, 20, 21, 44};
+
 	blockNum = 0;
 	int max_blocks_modified = 256;
 	int max_block_list_size = 3 * max_blocks_modified + max_blocks_modified;
@@ -260,6 +271,10 @@ CMSE_NS_ENTRY void SECURE_Send_Modified_Mem(){
 		for(int i = 0; i < (numModified >= 8 ? 8 : numModified); i++){
 			//calculate the address of the next block to send
 			uint32_t* addrOfNextBlock = (uint32_t*) NSEC_MEM_START + modifiedBlockNums[blockInd]*BUFFER_SIZE/4;
+			printf("------------------------------------------------------------------------------------\n\r");
+			printf("sending data at address %p\n\r", addrOfNextBlock);
+			SECURE_Print_Mem_Buffer(SEC_Mem_Buffer, 1024);
+			printf("------------------------------------------------------------------------------------\n\r");
 			//send through SPI
 			SECURE_SPI_Send_Data_Block(addrOfNextBlock);
 			blockInd++;
@@ -273,7 +288,7 @@ CMSE_NS_ENTRY void SECURE_Send_Modified_Mem(){
 			break;
 		}else{
 			SECURE_SPI_Toggle_Comm(1);
-			HAL_Delay(8000);
+			HAL_Delay(10000);
 		}
 	}
 	int res = SECURE_SPI_Receive_Classification();
@@ -401,7 +416,7 @@ void SECURE_DMA_Fetch_NonSecure_Mem(uint32_t *nsc_mem_buffer, uint32_t Size)
 	   printf("memory dump found to be in range.\n\r");
 	    if (HAL_DMA_Start_IT(&hdma_memtomem_dma1_channel1,
 	                             (uint32_t)nsc_mem_buffer,
-	                             (uint32_t)&SEC_Mem_Buffer,
+	                             (uint32_t)SEC_Mem_Buffer,
 	                             Size) == HAL_OK)
 		{
 		  /* Transfer started */
